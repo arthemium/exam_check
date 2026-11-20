@@ -133,12 +133,20 @@ func (s *Server) allowRequestOrigin(w http.ResponseWriter, r *http.Request) bool
 
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	var version int
-	if err := s.Store.DB.QueryRowContext(r.Context(), "PRAGMA user_version").Scan(&version); err != nil || version != schemaVersion {
+	if err := s.Store.DB.QueryRowContext(r.Context(), "PRAGMA user_version").Scan(&version); err != nil {
+		contextLogger(r.Context()).Error("readiness_failed", "reason", "schema_query_failed")
+		writeError(w, 503, "Database is not ready")
+		return
+	}
+	if version != schemaVersion {
+		contextLogger(r.Context()).Error("readiness_failed", "reason", "schema_version_mismatch",
+			"expected_version", schemaVersion, "actual_version", version)
 		writeError(w, 503, "Database is not ready")
 		return
 	}
 	var users, jobs int
 	if err := s.Store.DB.QueryRowContext(r.Context(), "SELECT EXISTS(SELECT 1 FROM users), EXISTS(SELECT 1 FROM check_jobs)").Scan(&users, &jobs); err != nil {
+		contextLogger(r.Context()).Error("readiness_failed", "reason", "tables_query_failed")
 		writeError(w, 503, "Database is not ready")
 		return
 	}

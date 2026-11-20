@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -69,18 +68,16 @@ func requestLogging(next http.Handler, mux *http.ServeMux) http.Handler {
 		request = request.WithContext(withLogger(request.Context(), logger))
 		writer.Header().Set("X-Request-ID", requestID)
 		response := &loggedResponse{ResponseWriter: writer}
-		defer logHTTPResponse(request.Context(), response, route, started)
+		defer logHTTPResponse(request.Context(), response, started)
+		logger.Info("HTTP request received")
 		next.ServeHTTP(response, request)
 	})
 }
 
-func logHTTPResponse(ctx context.Context, response *loggedResponse, route string, started time.Time) {
+func logHTTPResponse(ctx context.Context, response *loggedResponse, started time.Time) {
 	status := response.status
 	if status == 0 {
 		status = http.StatusOK
-	}
-	if status < 400 && (strings.HasPrefix(route, "GET /health/") || route == "GET /assets/") {
-		return
 	}
 	level := slog.LevelInfo
 	if status >= 500 {

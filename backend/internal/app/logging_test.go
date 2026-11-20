@@ -3,11 +3,13 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func captureHTTPLog(request *http.Request, output *bytes.Buffer) *http.Request {
@@ -53,14 +55,14 @@ func TestHTTPLogIncludesGuardFailuresWithoutPrivateRequestData(t *testing.T) {
 			response := httptest.NewRecorder()
 			server.Handler().ServeHTTP(response, captureHTTPLog(request, &output))
 			entries := decodeHTTPLogs(t, &output)
-			if len(entries) != 1 {
-				t.Fatalf("expected one access entry: %s", output.String())
+			if len(entries) != 2 || entries[0]["msg"] != "HTTP request received" {
+				t.Fatalf("expected arrival and completion entries: %s", output.String())
 			}
-			entry := entries[0]
+			entry := entries[1]
 			if response.Code != item.status || entry["status"] != float64(item.status) || entry["route"] != item.route || entry["level"] != "WARN" {
 				t.Fatalf("incorrect rejection log: %s", output.String())
 			}
-			if entry["request_id"] != response.Header().Get("X-Request-ID") || response.Header().Get("X-Request-ID") == "" {
+			if entry["request_id"] != response.Header().Get("X-Request-ID") || entries[0]["request_id"] != entry["request_id"] || response.Header().Get("X-Request-ID") == "" {
 				t.Fatalf("missing request correlation: %s", output.String())
 			}
 			if entry["response_bytes"] != float64(response.Body.Len()) || entry["duration_ms"] == nil {
@@ -73,17 +75,16 @@ func TestHTTPLogIncludesGuardFailuresWithoutPrivateRequestData(t *testing.T) {
 	}
 }
 
-func TestHTTPLogQuietSuccessfulHealthAndAssets(t *testing.T) {
+func TestHTTPLogIncludesSuccessfulHealthAndAssets(t *testing.T) {
 	cases := []struct {
 		path, route string
 		status      int
-		logged      bool
 	}{
-		{"/health/ready", "GET /health/ready", 200, false},
-		{"/health/ready", "GET /health/ready", 503, true},
-		{"/assets/app.js", "GET /assets/", 200, false},
-		{"/assets/missing.js", "GET /assets/", 404, true},
-		{"/", "GET /{$}", 200, true},
+		{"/health/ready", "GET /health/ready", 200},
+		{"/health/ready", "GET /health/ready", 503},
+		{"/assets/app.js", "GET /assets/", 200},
+		{"/assets/missing.js", "GET /assets/", 404},
+		{"/", "GET /{$}", 200},
 	}
 	for _, item := range cases {
 		mux := http.NewServeMux()
@@ -95,10 +96,10 @@ func TestHTTPLogQuietSuccessfulHealthAndAssets(t *testing.T) {
 		request := captureHTTPLog(httptest.NewRequest("GET", item.path, nil), &output)
 		requestLogging(mux, mux).ServeHTTP(httptest.NewRecorder(), request)
 		entries := decodeHTTPLogs(t, &output)
-		if (len(entries) == 1) != item.logged {
+		if len(entries) != 2 || entries[0]["msg"] != "HTTP request received" || entries[1]["msg"] != "HTTP request completed" {
 			t.Fatalf("unexpected logging for %s (%d): %s", item.path, item.status, output.String())
 		}
-		if item.status == 503 && entries[0]["level"] != "ERROR" {
+		if item.status == 503 && entries[1]["level"] != "ERROR" {
 			t.Fatalf("server failure is not an error log: %s", output.String())
 		}
 	}
@@ -111,11 +112,74 @@ func TestHTTPLogDoesNotExposeUnmatchedPaths(t *testing.T) {
 	response := httptest.NewRecorder()
 	requestLogging(mux, mux).ServeHTTP(response, captureHTTPLog(request, &output))
 	entries := decodeHTTPLogs(t, &output)
-	if len(entries) != 1 || entries[0]["route"] != "unmatched" || entries[0]["status"] != float64(404) {
+	if len(entries) != 2 || entries[0]["route"] != "unmatched" || entries[1]["status"] != float64(404) {
 		t.Fatalf("wrong unmatched route log: %s", output.String())
 	}
 	if strings.Contains(output.String(), "private-") || strings.Contains(output.String(), "secret") {
 		t.Fatalf("unmatched URL leaked: %s", output.String())
+	}
+}
+
+func TestHTTPLogRecordsArrivalBeforeBlockedHandlerCompletes(t *testing.T) {
+	entered, release, done := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /waiting", func(http.ResponseWriter, *http.Request) {
+		close(entered)
+		<-release
+	})
+	var output bytes.Buffer
+	request := captureHTTPLog(httptest.NewRequest("GET", "/waiting", nil), &output)
+	go func() {
+		defer close(done)
+		requestLogging(mux, mux).ServeHTTP(httptest.NewRecorder(), request)
+	}()
+	defer func() { close(release); <-done }()
+	select {
+	case <-entered:
+	case <-time.After(time.Second):
+		t.Fatal("handler did not receive the request")
+	}
+	entries := decodeHTTPLogs(t, &output)
+	if len(entries) != 1 || entries[0]["msg"] != "HTTP request received" || entries[0]["route"] != "GET /waiting" {
+		t.Fatalf("arrival was not logged while the handler was blocked: %s", output.String())
+	}
+}
+
+func TestReadinessLogsSafeFailureReasons(t *testing.T) {
+	cases := []struct{ reason, statement string }{
+		{"schema_query_failed", ""},
+		{"schema_version_mismatch", fmt.Sprintf("PRAGMA user_version=%d", schemaVersion+1)},
+		{"tables_query_failed", "DROP TABLE check_jobs; CREATE VIEW check_jobs AS SELECT * FROM private_student_data"},
+	}
+	for _, item := range cases {
+		t.Run(item.reason, func(t *testing.T) {
+			server := authFixture(t)
+			if item.statement == "" {
+				if err := server.Store.DB.Close(); err != nil {
+					t.Fatal(err)
+				}
+			} else if _, err := server.Store.DB.Exec(item.statement); err != nil {
+				t.Fatal(err)
+			}
+			var output bytes.Buffer
+			request := captureHTTPLog(httptest.NewRequest("GET", "/health/ready?token=private-token", nil), &output)
+			response := httptest.NewRecorder()
+			server.Handler().ServeHTTP(response, request)
+			entries := decodeHTTPLogs(t, &output)
+			if response.Code != 503 || len(entries) != 3 || entries[1]["msg"] != "readiness_failed" || entries[1]["reason"] != item.reason {
+				t.Fatalf("missing readiness failure reason: %s", output.String())
+			}
+			failure := entries[1]
+			if failure["level"] != "ERROR" || failure["request_id"] != response.Header().Get("X-Request-ID") {
+				t.Fatalf("readiness failure lacks request correlation: %s", output.String())
+			}
+			if item.reason == "schema_version_mismatch" && (failure["expected_version"] != float64(schemaVersion) || failure["actual_version"] != float64(schemaVersion+1)) {
+				t.Fatalf("missing schema versions: %s", output.String())
+			}
+			if failure["error"] != nil || strings.Contains(output.String(), "private") || strings.Contains(output.String(), "sql:") {
+				t.Fatalf("readiness log exposed private details: %s", output.String())
+			}
+		})
 	}
 }
 
@@ -128,10 +192,10 @@ func TestHTTPPanicLogsRequestIDWithoutPanicValue(t *testing.T) {
 	response := httptest.NewRecorder()
 	requestLogging(server.guard(mux), mux).ServeHTTP(response, request)
 	entries := decodeHTTPLogs(t, &output)
-	if response.Code != 500 || len(entries) != 2 || entries[0]["msg"] != "HTTP request panicked" || entries[1]["status"] != float64(500) {
+	if response.Code != 500 || len(entries) != 3 || entries[1]["msg"] != "HTTP request panicked" || entries[2]["status"] != float64(500) {
 		t.Fatalf("panic was not captured: %s", output.String())
 	}
-	if entries[0]["request_id"] != response.Header().Get("X-Request-ID") || strings.Contains(output.String(), "private-password") {
+	if entries[1]["request_id"] != response.Header().Get("X-Request-ID") || strings.Contains(output.String(), "private-password") {
 		t.Fatalf("unsafe or uncorrelated panic: %s", output.String())
 	}
 }

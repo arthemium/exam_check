@@ -37,16 +37,26 @@ func main() {
 }
 
 func serve() error {
+	started := time.Now()
+	slog.Info("application_starting")
 	cfg, err := app.LoadConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("configuration failed: %w", err)
 	}
+	logStartupConfig(cfg)
+	slog.Info("database_initializing", "database", "sqlite")
+	databaseStarted := time.Now()
 	store, err := app.OpenStore(cfg.DBPath, cfg.OpenAIModel)
 	if err != nil {
 		return fmt.Errorf("database initialization failed: %w", err)
 	}
 	defer store.Close()
-	slog.Info("database_ready", "database", "sqlite")
+	slog.Info("database_ready", "database", "sqlite", "duration_ms", time.Since(databaseStarted).Milliseconds())
+	listener, err := openHTTPListener(cfg.ListenAddr)
+	if err != nil {
+		return err
+	}
+	defer listener.Close()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	workerDone := startWorker(ctx, cfg, store)
@@ -54,18 +64,21 @@ func serve() error {
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 120 * time.Second, WriteTimeout: 120 * time.Second,
 		IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	errorsCh := make(chan error, 1)
-	go func() { errorsCh <- server.ListenAndServe() }()
-	slog.Info("server_starting", "listen_addr", cfg.ListenAddr, "worker_enabled", cfg.EnableWorker,
-		"openai_key_configured", cfg.OpenAIKey != "")
+	go func() { errorsCh <- server.Serve(listener) }()
+	slog.Info("application_ready", "startup_duration_ms", time.Since(started).Milliseconds())
 	select {
 	case <-ctx.Done():
 	case err = <-errorsCh:
+		if !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("http_server_failed", "error", err)
+		}
 		stop()
 	}
 	slog.Info("server_stopping")
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if shutdownErr := server.Shutdown(shutdown); shutdownErr != nil {
+		slog.Warn("server_shutdown_failed", "error", shutdownErr)
 		server.Close()
 	}
 	<-workerDone

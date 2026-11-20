@@ -31,7 +31,7 @@ The server and its healthcheck use `LISTEN_ADDR` when set, otherwise `PORT` when
 
 ## Logs
 
-The app writes structured JSON logs to stdout. Follow them with `docker compose --env-file .env logs -f --tail=100 app`. Logs cover startup, requests, image input/stored sizes, queued checks, worker stages, retries, failures, and OpenAI model/status/timing. Requests get an `X-Request-ID`; worker and provider events share job and exam IDs. Successful health checks and static assets are quiet. Bodies, prompts, student text, credentials, cookies, and API keys are excluded. Docker rotates logs at 10 MiB per file, retaining up to three files.
+The app writes structured JSON logs to stdout. Follow them with `docker compose --env-file .env logs -f --tail=100 app`. Logs cover startup stages and the confirmed listening port, request arrival/completion (including health checks and assets), image input/stored sizes, queued checks, worker stages, retries, failures, and OpenAI model/status/timing. Requests get an `X-Request-ID`; worker and provider events share job and exam IDs. Readiness failures identify the failing check, and startup warns about loopback bindings or platform port mismatches. Bodies, prompts, student text, credentials, cookies, and API keys are excluded. Docker rotates logs at 10 MiB per file, retaining up to three files. See [Railway diagnostics](../deploy/railway.md#logs-and-502-errors) for deployment logs and 502 troubleshooting.
 
 Unexpected checker panics are logged and mark the affected job as failed, allowing the worker to continue with later jobs. Shutdown and lost leases remain recoverable interruptions.
 

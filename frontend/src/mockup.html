@@ -1,0 +1,1520 @@
+<div id="examcheck-preview" aria-label="Examcheck responsive web app">
+  <div class="ec-app">
+    <header class="ec-header">
+      <div class="ec-brand"><span class="ec-logo"><i data-lucide="notebook-pen" aria-hidden="true"></i></span>examcheck<span class="ec-preview">Preview</span></div>
+      <nav class="ec-nav" aria-label="Exam navigation">
+        <button type="button" data-action="library" class="ec-nav-button cursor-interaction" aria-current="page"><i data-lucide="folders" aria-hidden="true"></i>All folders</button>
+        <button type="button" id="ec-nav-exams" data-action="folder" class="ec-nav-button cursor-interaction" hidden><i data-lucide="list" aria-hidden="true"></i>Exam list</button>
+      </nav>
+    </header>
+
+    <main class="ec-main">
+      <nav id="ec-breadcrumb" class="ec-breadcrumb" aria-label="Your location" hidden><div class="ec-breadcrumb-path"><button type="button" class="ec-crumb cursor-interaction" data-action="library">All folders</button><span aria-hidden="true">/</span><button type="button" class="ec-crumb cursor-interaction" id="ec-folder-crumb" data-action="folder"></button><span id="ec-exam-divider" aria-hidden="true">/</span><span id="ec-exam-crumb" aria-current="page"></span></div><button type="button" class="ec-button cursor-interaction" id="ec-back" data-action="back">Back to folders</button></nav>
+      <nav id="ec-workflow" class="ec-workflow" aria-label="Exam workflow" hidden><button type="button" class="ec-step cursor-interaction" data-action="folder"><span aria-hidden="true">1</span>Exam list</button><button type="button" id="ec-step-criteria" class="ec-step cursor-interaction" data-action="edit-assessment"><span aria-hidden="true">2</span>Criteria</button><button type="button" id="ec-step-review" class="ec-step cursor-interaction" data-action="current-review" disabled><span aria-hidden="true">3</span>Review</button></nav>
+      <section id="ec-name-editor" class="ec-panel ec-name-editor" aria-label="Rename item" hidden>
+        <h2 id="ec-name-editor-heading">Rename exam</h2>
+        <div class="ec-name-fields"><label id="ec-rename-student-label" for="ec-rename-student">Student name<input id="ec-rename-student" class="ec-input" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Anna Smith"></label><label for="ec-rename-title"><span id="ec-rename-title-label">Exam title</span><input id="ec-rename-title" class="ec-input" type="text" maxlength="80" autocomplete="off" required></label></div>
+        <p id="ec-name-error" class="ec-form-error" role="alert"></p>
+        <div class="ec-name-actions"><button type="button" class="ec-button ec-primary cursor-interaction" data-action="save-name">Save changes</button><button type="button" class="ec-button cursor-interaction" data-action="cancel-name">Cancel</button></div>
+      </section>
+      <section id="ec-delete-confirmation" class="ec-panel ec-delete-confirmation" aria-labelledby="ec-delete-heading" hidden>
+        <h2 id="ec-delete-heading">Delete item?</h2>
+        <p id="ec-delete-description"></p>
+        <div class="ec-name-actions"><button type="button" class="ec-button cursor-interaction" id="ec-delete-cancel">Cancel</button><button type="button" class="ec-button ec-danger cursor-interaction" id="ec-delete-confirm">Delete</button></div>
+      </section>
+      <section data-screen="library">
+        <div class="ec-review-heading"><div class="ec-heading"><div class="ec-eyebrow">YOUR EXAM LIBRARY</div><h1>Folders</h1><p>Open a folder to see its students' exams.</p></div><button type="button" class="ec-button ec-primary cursor-interaction" data-action="create-folder"><i data-lucide="folder-plus" aria-hidden="true"></i>Create folder</button></div>
+        <form id="ec-folder-form" class="ec-panel ec-folder-form" hidden>
+          <label for="ec-folder-name">Folder name</label>
+          <div class="ec-folder-fields"><input id="ec-folder-name" class="ec-input" type="text" maxlength="80" placeholder="e.g. Year 10 — November essays" required autocomplete="off"><button type="button" class="ec-button ec-primary cursor-interaction" data-action="save-folder">Create folder</button><button type="button" class="ec-button cursor-interaction" data-action="cancel-folder">Cancel</button></div>
+          <p id="ec-folder-error" class="ec-form-error" role="alert"></p>
+        </form>
+        <div id="ec-library-empty" class="ec-panel ec-library-empty"><span class="ec-empty-symbol"><i data-lucide="folder-open" aria-hidden="true"></i></span><h2>Start with a folder</h2><p>Create a folder, then add the exams that belong there.</p><button type="button" class="ec-button cursor-interaction" data-action="create-folder">Create your first folder</button></div>
+        <section id="ec-folder-list-panel" class="ec-panel" aria-label="Folders" hidden><div class="ec-exam-list-heading"><h2>Folder name</h2><span class="ec-secondary">Open a folder or rename it</span></div><ul id="ec-folder-list" class="ec-folder-list"></ul></section>
+        <p class="ec-library-note">Preview: folders and sample exams are saved in this browser only.</p>
+      </section>
+
+      <section data-screen="folder" hidden>
+        <div class="ec-review-heading"><div class="ec-heading"><div class="ec-eyebrow">EXAM FOLDER</div><h1 id="ec-folder-title"></h1><p id="ec-folder-summary"></p></div><div class="ec-task-actions"><button type="button" id="ec-folder-upload" class="ec-button ec-primary cursor-interaction" data-action="folder-upload"><i data-lucide="upload" aria-hidden="true"></i>Upload exams</button><button type="button" id="ec-folder-take-photo" class="ec-button cursor-interaction" data-action="folder-camera"><i data-lucide="camera" aria-hidden="true"></i>Take photo</button></div></div>
+        <input id="ec-folder-files" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+        <input id="ec-folder-camera" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+        <p id="ec-folder-import-error" class="ec-form-error" role="alert"></p><p id="ec-folder-import-progress" class="ec-helper" role="status"></p>
+        <div id="ec-folder-empty" class="ec-panel ec-library-empty"><span class="ec-empty-symbol"><i data-lucide="files" aria-hidden="true"></i></span><h2>Your folder is ready</h2><p>Upload exams or take a photo. Each photo is added to this list as a separate exam.</p></div>
+        <section id="ec-batch-progress" class="ec-panel ec-batch-progress" aria-label="Bulk check progress" hidden><div><h2>Bulk check progress</h2><p id="ec-batch-summary" role="status" aria-live="polite"></p><p class="ec-helper">Simulated progress for this mockup. Real-photo OCR and grading are not connected.</p></div><button type="button" id="ec-batch-results" class="ec-button ec-primary cursor-interaction" data-action="batch-results" disabled>View results</button></section>
+        <section id="ec-exam-list-panel" class="ec-panel" aria-label="Exams in this folder" hidden><div class="ec-exam-list-heading"><h2>Student / exam</h2><label class="ec-select-all"><input id="ec-select-all" type="checkbox">Select all</label></div><div id="ec-selection-toolbar" class="ec-selection-toolbar" hidden><span id="ec-selection-count" role="status"></span><div class="ec-task-actions"><button type="button" class="ec-button cursor-interaction" data-action="clear-selection">Clear selection</button><button type="button" id="ec-bulk-check-selected" class="ec-button ec-primary cursor-interaction" data-action="bulk">Bulk check</button></div></div><ul id="ec-exam-list" class="ec-exam-list"></ul></section>
+        <div class="ec-folder-help"><p class="ec-helper">Click an exam to check it individually. Select two or more rows to bulk check. One photo per exam; up to 10 photos per upload.</p><button type="button" id="ec-folder-samples" class="ec-text-button cursor-interaction" data-action="folder-samples">Try 3 sample exams</button><p class="ec-library-note">Mockup: photo previews are saved in this browser. Real-photo transcription and grading are not connected.</p></div>
+      </section>
+
+      <section data-screen="upload" hidden>
+        <div class="ec-heading"><div class="ec-eyebrow">EXAM DETAILS</div><h1 id="ec-upload-title">Add exam</h1><p>Name the student's exam, add a photo, and choose what to check.</p></div>
+        <div class="ec-destination"><span><i data-lucide="folder" aria-hidden="true"></i>Folder: <strong id="ec-upload-destination"></strong></span><div class="ec-name-fields"><label for="ec-student-name">Student name<input class="ec-input" id="ec-student-name" type="text" maxlength="80" placeholder="e.g. Anna Smith" autocomplete="off"></label><label for="ec-exam-name">Exam title<input class="ec-input" id="ec-exam-name" type="text" maxlength="80" placeholder="e.g. November essay" required autocomplete="off"></label></div></div>
+        <div class="ec-upload-layout">
+          <div class="ec-source-stack">
+          <section id="ec-bulk-panel" class="ec-panel" aria-label="Selected exams" hidden>
+            <div class="ec-section-heading"><h2>Selected exams</h2><span id="ec-bulk-count" class="ec-secondary">0 exams</span></div>
+            <div class="ec-bulk-intro"><p>Choose shared criteria for these exams. Their names, photos, and individual task instructions are kept.</p><p class="ec-helper">A task entered below replaces the task instructions for all selected exams. Leave it blank to keep each exam's task.</p></div>
+            <ul id="ec-bulk-list" class="ec-bulk-list" aria-label="Selected exams to check"></ul>
+            <div id="ec-bulk-detection"></div>
+          </section>
+          <section class="ec-panel ec-source" aria-label="Exam pages">
+            <div class="ec-section-heading"><h2>Your exam</h2><span class="ec-secondary" id="ec-page-count">No pages added</span></div>
+            <div id="ec-empty" class="ec-dropzone">
+              <span class="ec-upload-icon"><i data-lucide="scan-line" aria-hidden="true"></i></span>
+              <h3>A photo is all you need.</h3><p>Keep the whole page in view<br>and make sure the writing is clear.</p>
+              <div class="ec-upload-actions"><button type="button" class="ec-button ec-primary ec-camera-button cursor-interaction" data-action="camera"><i data-lucide="camera" aria-hidden="true"></i>Take photo</button><button type="button" class="ec-button ec-upload-button cursor-interaction" data-action="upload"><i data-lucide="upload" aria-hidden="true"></i>Upload photo</button></div>
+              <button type="button" class="ec-text-button cursor-interaction" data-action="sample">Try a sample exam</button>
+            </div>
+            <div id="ec-page-preview" hidden>
+              <img id="ec-uploaded-page" class="ec-uploaded-page" alt="Uploaded exam photo" hidden>
+              <div class="ec-page-row"><div class="ec-mini-paper" aria-hidden="true"><span>Learning a new language</span><p>Learning a new language opens doors to different cultures and helps people communicate with confidence.</p><p>My sister practice English every evening...</p><p>Small daily efforts can make a big differance.</p></div><div class="ec-page-meta"><span class="ec-file-tag">PAGE 1</span><h3>Learning a new language</h3><p>Handwritten essay · Sample</p><span class="ec-ready"><i data-lucide="check" aria-hidden="true"></i>Ready to check</span><button type="button" class="ec-text-button cursor-interaction" data-action="remove">Remove page</button></div></div>
+              <div class="ec-page-footer"><i data-lucide="image" aria-hidden="true"></i>Original handwriting stays alongside your feedback.</div>
+            </div>
+            <label class="ec-option ec-detect-option cursor-interaction"><input id="ec-detect-task" type="checkbox" checked><span><strong>Find the task on the essay page</strong><small>Capture the instructions separately from the student's answer.</small></span></label>
+          </section>
+          <section class="ec-panel ec-task" aria-label="Task instructions">
+            <div class="ec-section-heading"><h2>Task instructions</h2><span class="ec-secondary">Optional</span></div>
+            <div class="ec-task-body">
+              <p class="ec-helper">Already on the exam photo? No extra photo needed. Otherwise, add a task photo or type the instructions below.</p>
+              <div class="ec-task-actions"><button type="button" class="ec-button cursor-interaction" data-action="task-camera"><i data-lucide="camera" aria-hidden="true"></i>Take task photo</button><button type="button" class="ec-button cursor-interaction" data-action="task-upload"><i data-lucide="upload" aria-hidden="true"></i>Upload task photo</button></div>
+              <div id="ec-task-photo" class="ec-task-photo" hidden><i data-lucide="file-text" aria-hidden="true"></i><div><strong>Task photo · Sample</strong><p>The sample instructions are ready to review below.</p></div><button type="button" class="ec-text-button cursor-interaction" data-action="remove-task-photo">Remove</button></div>
+              <label class="ec-field-label" for="ec-task-text">Task transcription <span id="ec-task-source" class="ec-secondary"></span></label>
+              <textarea id="ec-task-text" class="ec-input" rows="6" maxlength="4000" placeholder="The task instructions will appear here. You can also type or paste them."></textarea>
+              <p class="ec-helper" id="ec-task-help">Review and correct the instructions before checking. Task text is excluded from the student's answer.</p>
+              <p class="ec-demo-note">Mockup: photo capture and transcription use sample content.</p>
+            </div>
+          </section>
+          </div>
+          <section class="ec-panel ec-checks" aria-label="Checking options">
+            <div class="ec-section-heading"><h2>What should we check?</h2></div>
+            <div class="ec-assessment-picker"><label class="ec-field-label" for="ec-assessment">Assessment criteria</label><select id="ec-assessment" class="ec-input"><option value="general">General writing</option><option value="cae">Cambridge C1 Advanced (CAE) Essay</option></select></div>
+            <div id="ec-cae-criteria" class="ec-rubric" hidden><h3>CAE assessment criteria</h3><dl><dt>Content</dt><dd>Task completion, relevance, and how fully the reader is informed.</dd><dt>Communicative Achievement</dt><dd>Format, register, style, and communicative purpose.</dd><dt>Organisation</dt><dd>Coherence, paragraphs, and linking ideas.</dd><dt>Language</dt><dd>Vocabulary and grammar: range and accuracy.</dd></dl><p class="ec-helper">Based on Cambridge's four writing assessment criteria.</p></div>
+            <p class="ec-option-intro">Choose individual checks. Custom criteria can be added to either assessment.</p>
+            <div class="ec-option-list">
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="grammar" checked><span><strong>Grammar</strong><small>Tenses, agreement, sentence structure</small></span><span class="ec-category-dot ec-grammar-dot" aria-hidden="true"></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="spelling" checked><span><strong>Spelling</strong><small>Misspelled words and typos</small></span><span class="ec-category-dot ec-spelling-dot" aria-hidden="true"></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="punctuation" checked><span><strong>Punctuation</strong><small>Commas, full stops, apostrophes</small></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="structure" checked><span><strong>Essay structure</strong><small>Paragraphs, flow, and organization</small></span><span class="ec-category-dot ec-structure-dot" aria-hidden="true"></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="format"><span><strong>Format</strong><small>Conventions of the requested text type</small></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="register"><span><strong>Register</strong><small>Formality and tone for the intended reader</small></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="style"><span><strong>Style</strong><small>Clarity, consistency, and expression</small></span></label>
+              <label class="ec-option cursor-interaction"><input type="checkbox" name="checks" value="taskCompletion"><span><strong>Task completion</strong><small>Coverage of the topic and how fully the reader is informed</small></span></label>
+            </div>
+            <div class="ec-custom-criteria"><label class="ec-field-label" for="ec-custom-criteria">Custom criteria <span class="ec-secondary">Optional</span></label><textarea id="ec-custom-criteria" class="ec-input" rows="3" maxlength="1200" placeholder="One criterion per line, e.g. support each argument with an example"></textarea><p class="ec-helper">Add your own requirements alongside the selected checks.</p></div>
+            <div class="ec-word-limits"><h3>Word limit <span class="ec-secondary">Optional</span></h3><div class="ec-name-fields"><label for="ec-min-words">Minimum words<input id="ec-min-words" class="ec-input" type="text" inputmode="numeric" maxlength="5" placeholder="No minimum" aria-describedby="ec-word-limit-error"></label><label for="ec-max-words">Maximum words<input id="ec-max-words" class="ec-input" type="text" inputmode="numeric" maxlength="5" placeholder="No maximum" aria-describedby="ec-word-limit-error"></label></div><p id="ec-word-limit-error" class="ec-form-error" role="alert"></p><p class="ec-helper">Count the student's answer only. CAE suggests 220–260 words; you can change either limit.</p></div>
+            <button type="button" class="ec-button ec-primary ec-check-button cursor-interaction" id="ec-check" data-action="check" disabled><i data-lucide="scan-text" aria-hidden="true"></i>Check exam</button>
+            <button type="button" class="ec-button ec-check-button ec-save-button cursor-interaction" id="ec-save" data-action="save-exam" disabled>Save exam to folder</button>
+            <p class="ec-check-hint" id="ec-check-hint">Add a page to get started.</p>
+          </section>
+        </div>
+        <div class="ec-workflow-note"><i data-lucide="monitor-smartphone" aria-hidden="true"></i><span>Capture on your phone. Review on any screen.</span></div>
+      </section>
+
+      <section data-screen="camera" hidden>
+        <div class="ec-heading"><div class="ec-eyebrow" id="ec-camera-label">CAPTURE YOUR EXAM</div><h1>Keep the page inside the frame.</h1><p>Sample camera preview</p></div>
+        <div class="ec-camera-stage"><div class="ec-camera-paper"><h2>Learning a new language</h2><p>Learning a new language opens doors to different cultures and helps people communicate with confidence.</p><p>My sister practice English every evening, and her progress has encouraged me to study regularly.</p><p>I usually read short stories and write down unfamiliar words.</p><p>Small daily efforts can make a big differance over time.</p></div><div class="ec-viewfinder" aria-hidden="true"></div></div>
+        <div id="ec-task-camera-paper" class="ec-camera-task" hidden><span class="ec-eyebrow">WRITING TASK · SAMPLE</span><h2>Learning a new language</h2><p>Write an essay about the benefits of learning a new language. Explain two benefits, describe effective learning habits, and support your ideas with examples.</p></div>
+        <div class="ec-camera-footer"><button type="button" class="ec-button cursor-interaction" data-action="cancel">Cancel</button><button type="button" class="ec-button ec-primary cursor-interaction" data-action="capture"><i data-lucide="camera" aria-hidden="true"></i>Use sample photo</button></div>
+      </section>
+
+      <section data-screen="review" hidden>
+        <div class="ec-review-heading"><div class="ec-heading"><div class="ec-eyebrow">EXAM REVIEW</div><h1 id="ec-review-title">Learning a new language</h1><p>Handwritten essay <span aria-hidden="true">·</span> 1 page <span aria-hidden="true">·</span> Sample exam</p></div><div class="ec-task-actions"><button type="button" class="ec-button cursor-interaction" data-action="edit-assessment">Edit task &amp; criteria</button><button type="button" class="ec-button cursor-interaction" data-action="original"><i data-lucide="image" aria-hidden="true"></i><span id="ec-original-label">View original</span></button></div></div>
+        <nav id="ec-review-navigation" class="ec-panel ec-review-navigation" aria-label="Browse exams" hidden><div class="ec-review-paging"><button type="button" id="ec-previous-exam" class="ec-button cursor-interaction" data-action="previous-exam">Previous exam</button><span id="ec-review-position" aria-live="polite"></span><button type="button" id="ec-next-exam" class="ec-button cursor-interaction" data-action="next-exam">Next exam</button></div><div id="ec-exam-tabs" class="ec-exam-tabs" aria-label="Choose exam"></div></nav>
+        <section class="ec-panel ec-review-photo" aria-label="Exam photo"><div class="ec-section-heading"><h2>Exam photo</h2><div class="ec-task-actions"><span id="ec-review-photo-name" class="ec-secondary"></span><button type="button" class="ec-button cursor-interaction" id="ec-photo-zoom" data-action="photo-zoom" aria-expanded="false">Enlarge photo</button></div></div><div id="ec-review-photo-stage" class="ec-review-photo-stage"><img id="ec-review-image" alt="Uploaded exam photo" hidden><div id="ec-review-sample-photo" class="ec-review-sample-photo"></div><p id="ec-photo-missing" hidden>This photo preview is unavailable. Go to the exam list and choose Upload exams to add it again.</p></div></section>
+        <section class="ec-panel ec-review-task" aria-label="Task used for assessment"><div class="ec-section-heading"><h2>Task instructions</h2><span id="ec-review-task-source" class="ec-secondary"></span></div><p id="ec-review-task-text"></p></section>
+        <section class="ec-panel ec-word-summary" aria-label="Word count"><div><h2 id="ec-word-count">Word count</h2><p class="ec-helper">Student answer only · Title and task instructions excluded</p></div><p id="ec-word-status" role="status"></p></section>
+        <div class="ec-review-layout">
+          <section class="ec-panel ec-transcript" aria-label="Exam text">
+            <div class="ec-section-heading"><h2 id="ec-document-heading">Original text</h2><span class="ec-secondary" id="ec-document-meta">Student's wording preserved</span></div>
+            <div class="ec-legend" aria-label="Feedback categories"><span><b class="ec-category-dot ec-grammar-dot"></b>Grammar</span><span><b class="ec-category-dot ec-spelling-dot"></b>Spelling</span><span><b class="ec-category-dot ec-structure-dot"></b>Structure</span></div>
+            <div id="ec-pending-transcript" class="ec-pending" hidden><h3>Transcription will appear here</h3><p>Your uploaded photo is shown above. Text extraction is not connected in this mockup.</p></div>
+            <article id="ec-transcript-text" class="ec-essay"><h3>Learning a new language</h3><p>Learning a new language opens doors to different cultures and helps people communicate with confidence. It also makes travel more enjoyable because visitors can understand local customs and conversations. My sister <button type="button" data-issue="grammar" class="ec-mark ec-grammar cursor-interaction" aria-label="Grammar feedback for practice">practice</button> English every evening, and her progress has encouraged me to study regularly.</p><p>I usually read short stories and write down unfamiliar words. Watching films also improves my listening skills. Sharing these activities with friends makes the process enjoyable. Although learning takes patience, small daily efforts can make a big <button type="button" data-issue="spelling" class="ec-mark ec-spelling cursor-interaction" aria-label="Spelling feedback for differance">differance</button> over time.</p></article>
+            <article id="ec-original-text" class="ec-essay ec-handwriting" hidden><h3>Learning a new language</h3><p>Learning a new language opens doors to different cultures and helps people communicate with confidence. It also makes travel more enjoyable because visitors can understand local customs and conversations. My sister practice English every evening, and her progress has encouraged me to study regularly.</p><p>I usually read short stories and write down unfamiliar words. Watching films also improves my listening skills. Sharing these activities with friends makes the process enjoyable. Although learning takes patience, small daily efforts can make a big differance over time.</p></article>
+            <div class="ec-document-footer"><i data-lucide="mouse-pointer-2" aria-hidden="true"></i><span id="ec-document-tip">Select a highlighted word to see its feedback.</span></div>
+          </section>
+          <aside class="ec-panel ec-feedback" aria-label="Review feedback">
+            <div class="ec-section-heading"><h2>Feedback</h2><span id="ec-issue-count" class="ec-count">3</span></div>
+            <div id="ec-pending-feedback" class="ec-pending" hidden><h3>Criteria saved</h3><p id="ec-pending-criteria"></p><p>Feedback will appear here after checking. Use the sample batch to explore highlighted corrections.</p></div>
+            <div id="ec-issue-list" class="ec-issue-list">
+              <button type="button" class="ec-issue cursor-interaction" data-issue="grammar" aria-pressed="true"><span class="ec-issue-category">Grammar</span><span class="ec-issue-title">Subject–verb agreement</span><span class="ec-issue-pair"><s>practice</s><span class="ec-correction">practices</span></span></button>
+              <button type="button" class="ec-issue cursor-interaction" data-issue="spelling" aria-pressed="false"><span class="ec-issue-category">Spelling</span><span class="ec-issue-title">A spelling correction</span><span class="ec-issue-pair"><s>differance</s><span class="ec-correction">difference</span></span></button>
+              <button type="button" class="ec-issue cursor-interaction" data-issue="structure" aria-pressed="false"><span class="ec-issue-category">Structure · Suggestion</span><span class="ec-issue-title">Group related ideas</span><span class="ec-issue-summary">Keep learning habits together.</span></button>
+            </div>
+            <div class="ec-explanation" aria-live="polite"><span class="ec-detail-label" id="ec-detail-label">WHY THIS CHANGE?</span><p id="ec-detail-text">“My sister” is a singular subject. In the present simple, use “practices” instead of “practice.”</p></div>
+            <div class="ec-feedback-footer" id="ec-review-summary">2 corrections · 1 suggestion</div>
+          </aside>
+        </div>
+        <section id="ec-assessment-feedback" class="ec-panel ec-assessment-feedback" aria-label="Assessment feedback" hidden><div class="ec-section-heading"><h2 id="ec-assessment-feedback-title">Writing criteria</h2><span class="ec-secondary">Sample feedback · No grade assigned</span></div><div id="ec-assessment-cards" class="ec-assessment-cards"></div></section>
+      </section>
+      <p id="ec-announcement" class="ec-announcement" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+</div>
+
+<style>
+#examcheck-preview{--ec-bg:light-dark(#f4f4f4,#141414);--ec-surface:light-dark(#ffffff,#202020);--ec-text:light-dark(#171717,#f5f5f5);--ec-muted:light-dark(#626262,#b5b5b5);--ec-line:light-dark(#d8d8d8,#454545);--ec-accent:light-dark(#171717,#ededed);--ec-on-accent:light-dark(#ffffff,#171717);--ec-soft:light-dark(#eaeaea,#303030);--ec-grammar-bg:light-dark(#e4e4e4,#3a3a3a);--ec-grammar-line:light-dark(#484848,#d1d1d1);--ec-spelling-bg:light-dark(#f5f5f5,#292929);--ec-spelling-line:light-dark(#555555,#c8c8c8);--ec-structure:light-dark(#777777,#a9a9a9);width:100%;margin-inline:auto;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ec-text);font-size:15px;line-height:1.5;container-type:inline-size;container-name:examcheck}
+#examcheck-preview *{box-sizing:border-box}#examcheck-preview [hidden]{display:none!important}#examcheck-preview h1,#examcheck-preview h2,#examcheck-preview h3,#examcheck-preview p{margin:0}#examcheck-preview button,#examcheck-preview input{font:inherit}#examcheck-preview button{color:inherit}#examcheck-preview .ec-app{background:var(--ec-bg);border:1px solid var(--ec-line);border-radius:18px;overflow:clip}#examcheck-preview .ec-header{background:var(--ec-surface);border-bottom:1px solid var(--ec-line);min-height:78px;padding:20px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding-right:100px}#examcheck-preview .ec-brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:650;letter-spacing:-.7px}#examcheck-preview .ec-logo{height:33px;width:33px;border-radius:10px;background:var(--ec-accent);color:var(--ec-on-accent);display:grid;place-items:center}#examcheck-preview .ec-preview{font-size:11px;letter-spacing:.2px;font-weight:500;background:var(--ec-bg);border:1px solid var(--ec-line);border-radius:5px;padding:2px 6px;margin-left:2px;color:var(--ec-muted)}#examcheck-preview .ec-nav{display:flex;gap:6px}#examcheck-preview .ec-nav-button{background:transparent;border:0;border-radius:7px;padding:8px 12px;font-size:13px;font-weight:550;white-space:nowrap}#examcheck-preview .ec-nav-button[aria-current="page"]{background:var(--ec-soft);color:var(--ec-accent)}#examcheck-preview .ec-main{padding:36px 30px 18px}#examcheck-preview .ec-heading{margin-bottom:27px}#examcheck-preview .ec-eyebrow{font-size:11px;letter-spacing:1.9px;font-weight:650;color:var(--ec-accent);margin-bottom:9px}#examcheck-preview h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:34px;line-height:1.18;letter-spacing:-1.1px;text-wrap:balance}#examcheck-preview .ec-heading>p{margin-top:10px;color:var(--ec-muted);font-size:14px}#examcheck-preview .ec-upload-layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(270px,1fr);gap:20px;align-items:start}#examcheck-preview .ec-panel{background:var(--ec-surface);border:1px solid var(--ec-line);border-radius:12px;min-width:0}#examcheck-preview .ec-section-heading{padding:21px 22px 0;display:flex;align-items:center;justify-content:space-between;gap:10px}#examcheck-preview h2{font-size:15px;font-weight:600;line-height:1.4}#examcheck-preview h3{font-size:15px;font-weight:600;line-height:1.4}#examcheck-preview .ec-secondary{font-size:12px;color:var(--ec-muted)}#examcheck-preview .ec-dropzone{margin:20px;padding:36px 12px 28px;border:1px dashed var(--ec-line);border-radius:9px;display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--ec-bg)}#examcheck-preview .ec-upload-icon{display:grid;place-items:center;width:49px;height:49px;border-radius:14px;background:var(--ec-surface);border:1px solid var(--ec-line);color:var(--ec-accent);margin-bottom:17px}#examcheck-preview .ec-dropzone h3{font-size:17px}#examcheck-preview .ec-dropzone p{color:var(--ec-muted);font-size:13px;margin-top:8px}#examcheck-preview .ec-upload-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;margin:23px 0 13px}#examcheck-preview .ec-button{border:1px solid var(--ec-line);background:var(--ec-surface);border-radius:7px;padding:10px 14px;min-height:43px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:550}#examcheck-preview .ec-button.ec-primary{background:var(--ec-accent);color:var(--ec-on-accent);border-color:var(--ec-accent)}#examcheck-preview .ec-button:disabled{opacity:.46;cursor:not-allowed}#examcheck-preview .ec-text-button{font-size:12px;color:var(--ec-accent);background:transparent;border:0;padding:8px 3px;text-decoration:underline;text-underline-offset:3px}#examcheck-preview .ec-option-intro{padding:7px 22px 0;color:var(--ec-muted);font-size:13px}#examcheck-preview .ec-option-list{padding:14px 22px 18px;display:flex;flex-direction:column;gap:4px}#examcheck-preview .ec-option{display:flex;align-items:center;gap:11px;min-height:61px;padding-block:8px;border-bottom:1px solid var(--ec-line)}#examcheck-preview .ec-option:last-child{border-bottom:0}#examcheck-preview .ec-option input{width:17px;height:17px;flex-shrink:0;accent-color:var(--ec-accent)}#examcheck-preview .ec-option strong{display:block;font-size:14px;font-weight:550}#examcheck-preview .ec-option small{display:block;color:var(--ec-muted);font-size:12px;margin-top:2px}#examcheck-preview .ec-option .ec-category-dot{margin-left:auto;flex-shrink:0}#examcheck-preview .ec-category-dot{width:7px;height:7px;border-radius:50%;display:inline-block}#examcheck-preview .ec-grammar-dot{background:var(--ec-grammar-line)}#examcheck-preview .ec-spelling-dot{background:var(--ec-spelling-line)}#examcheck-preview .ec-structure-dot{background:var(--ec-structure)}#examcheck-preview .ec-check-button{margin:0 22px;width:calc(100% - 44px)}#examcheck-preview .ec-check-hint{text-align:center;color:var(--ec-muted);font-size:11px;margin:10px 16px 20px;min-height:17px}#examcheck-preview .ec-workflow-note{display:flex;align-items:center;justify-content:center;gap:9px;color:var(--ec-muted);font-size:12px;margin-top:26px}#examcheck-preview .ec-page-row{display:flex;gap:23px;padding:29px 22px;align-items:center;flex-wrap:wrap}#examcheck-preview .ec-mini-paper{width:142px;padding:13px 10px;background:light-dark(#ffffff,#eeeeee);color:#333333;box-shadow:0 3px 12px #00000015;font-family:"Segoe Print","Bradley Hand",cursive;transform:rotate(-3deg);border:1px solid #dddddd;font-size:9px;line-height:1.8;flex-shrink:0}#examcheck-preview .ec-mini-paper>span{font-size:10px;display:block;margin-bottom:6px;text-decoration:underline}#examcheck-preview .ec-mini-paper p+p{margin-top:12px}#examcheck-preview .ec-page-meta{flex:1;min-width:140px}#examcheck-preview .ec-file-tag{font-size:10px;letter-spacing:1.5px;color:var(--ec-muted)}#examcheck-preview .ec-page-meta h3{margin-top:5px}#examcheck-preview .ec-page-meta p{font-size:12px;color:var(--ec-muted);margin-top:5px}#examcheck-preview .ec-ready{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ec-accent);margin:15px 0 7px}#examcheck-preview .ec-page-footer{border-top:1px solid var(--ec-line);padding:15px 20px;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--ec-muted)}#examcheck-preview .ec-review-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:26px}#examcheck-preview .ec-review-heading .ec-heading{margin-bottom:0}#examcheck-preview .ec-review-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(250px,1fr);gap:20px;align-items:start}#examcheck-preview .ec-transcript .ec-section-heading{align-items:start;flex-wrap:wrap}#examcheck-preview .ec-legend{padding:16px 22px;display:flex;gap:17px;flex-wrap:wrap;border-bottom:1px solid var(--ec-line);font-size:11px;color:var(--ec-muted)}#examcheck-preview .ec-legend>span{display:flex;align-items:center;gap:6px}#examcheck-preview .ec-essay{padding:26px 27px 29px;font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.95;color:var(--ec-text)}#examcheck-preview .ec-essay h3{font:500 20px/1.4 Georgia,"Times New Roman",serif;margin-bottom:21px}#examcheck-preview .ec-essay p+p{margin-top:20px}#examcheck-preview .ec-mark{padding:1px 2px;border:0;border-bottom:2px solid transparent;border-radius:3px;background:transparent;font:inherit;color:inherit}#examcheck-preview .ec-mark.ec-grammar{background:var(--ec-grammar-bg);border-color:var(--ec-grammar-line)}#examcheck-preview .ec-mark.ec-spelling{background:var(--ec-spelling-bg);border-color:var(--ec-spelling-line)}#examcheck-preview .ec-mark[aria-pressed="true"]{outline:2px solid var(--ec-accent);outline-offset:2px}#examcheck-preview .ec-mark:disabled{color:inherit;background:transparent;border-color:transparent;cursor:text}#examcheck-preview .ec-document-footer{padding:14px 22px;border-top:1px solid var(--ec-line);display:flex;gap:8px;align-items:center;font-size:11px;color:var(--ec-muted)}#examcheck-preview .ec-count{min-width:24px;height:24px;padding:2px 7px;text-align:center;background:var(--ec-bg);border-radius:6px;font-size:12px}#examcheck-preview .ec-issue-list{padding:16px 13px 0;display:grid;gap:8px}#examcheck-preview .ec-issue{background:var(--ec-surface);text-align:left;border:1px solid var(--ec-line);border-radius:8px;padding:13px;display:flex;flex-direction:column;gap:5px;width:100%}#examcheck-preview .ec-issue[aria-pressed="true"]{background:var(--ec-soft);border-color:var(--ec-accent);box-shadow:inset 3px 0 var(--ec-accent)}#examcheck-preview .ec-issue-category{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--ec-muted)}#examcheck-preview .ec-issue-title{font-size:13px;font-weight:600}#examcheck-preview .ec-issue-pair{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}#examcheck-preview .ec-issue-pair s{color:var(--ec-muted)}#examcheck-preview .ec-correction{color:var(--ec-accent)}#examcheck-preview .ec-issue-summary{font-size:12px;color:var(--ec-muted)}#examcheck-preview .ec-explanation{padding:21px 22px 24px}#examcheck-preview .ec-detail-label{font-size:10px;letter-spacing:1px;font-weight:600;color:var(--ec-accent)}#examcheck-preview .ec-explanation p{margin-top:9px;font-size:13px;line-height:1.7}#examcheck-preview .ec-feedback-footer{padding:14px 22px;border-top:1px solid var(--ec-line);font-size:11px;color:var(--ec-muted)}#examcheck-preview .ec-handwriting{font-family:"Segoe Print","Bradley Hand",cursive;background:repeating-linear-gradient(transparent,transparent 30px,var(--ec-line) 31px,transparent 32px);background-origin:content-box}#examcheck-preview .ec-camera-stage{position:relative;max-width:450px;margin:auto;background:light-dark(#dedede,#383838);padding:28px 40px;border-radius:12px}#examcheck-preview .ec-camera-paper{background:light-dark(#ffffff,#eeeeee);color:#333333;padding:24px 20px;font-family:"Segoe Print","Bradley Hand",cursive;transform:rotate(-2deg);font-size:13px;line-height:1.85;box-shadow:0 4px 20px #00000018}#examcheck-preview .ec-camera-paper h2{font-family:inherit;margin-bottom:15px}#examcheck-preview .ec-camera-paper p+p{margin-top:16px}#examcheck-preview .ec-viewfinder{position:absolute;inset:18px;border:2px solid var(--ec-accent);border-radius:7px;pointer-events:none}#examcheck-preview .ec-camera-footer{display:flex;justify-content:center;gap:12px;margin-top:20px}#examcheck-preview .ec-announcement{font-size:12px;color:var(--ec-muted);text-align:center;margin-top:14px}#examcheck-preview .ec-announcement:empty{display:none}#examcheck-preview svg{flex-shrink:0}
+@container examcheck (max-width:700px){#examcheck-preview .ec-upload-layout,#examcheck-preview .ec-review-layout{grid-template-columns:1fr}#examcheck-preview .ec-header{padding:16px 20px;padding-right:85px;gap:14px}#examcheck-preview .ec-nav{width:100%}#examcheck-preview .ec-main{padding:27px 18px 18px}#examcheck-preview h1{font-size:30px}#examcheck-preview .ec-dropzone{padding-block:26px}#examcheck-preview .ec-upload-actions{flex-direction:column;width:100%;max-width:250px}#examcheck-preview .ec-upload-button{order:2}#examcheck-preview .ec-option{min-height:64px}#examcheck-preview .ec-button{min-height:44px;font-size:14px}#examcheck-preview .ec-mark{padding:6px 3px}#examcheck-preview .ec-review-heading{align-items:start}#examcheck-preview .ec-essay{padding:23px 21px;font-size:17px}#examcheck-preview .ec-legend{gap:13px}#examcheck-preview .ec-workflow-note{font-size:11px}#examcheck-preview .ec-camera-stage{padding:23px}#examcheck-preview .ec-camera-paper{padding:21px 16px}#examcheck-preview .ec-page-row{gap:18px}#examcheck-preview .ec-text-button{min-height:40px}#examcheck-preview .ec-preview{display:none}}
+#examcheck-preview .ec-breadcrumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-10px 0 22px;color:var(--ec-muted);font-size:14px}
+#examcheck-preview .ec-breadcrumb .ec-text-button{font-size:14px;overflow-wrap:anywhere;text-align:left}
+#examcheck-preview .ec-folder-list{list-style:none;margin:0;padding:0}
+#examcheck-preview .ec-folder-list>li+li{border-top:1px solid var(--ec-line)}
+#examcheck-preview .ec-list-item{display:flex;align-items:stretch;min-width:0}
+#examcheck-preview .ec-folder-row{display:flex;align-items:center;gap:16px;text-align:left;flex:1;min-width:0;padding:20px 22px;background:transparent;border:0;min-height:88px}
+#examcheck-preview .ec-folder-row .ec-folder-copy{flex:1}
+#examcheck-preview .ec-list-item>.ec-exam-row{width:auto;flex:1;min-width:0}
+#examcheck-preview .ec-folder-row:hover,#examcheck-preview .ec-exam-row:hover{background:var(--ec-soft)}
+#examcheck-preview .ec-rename-button{align-self:center;margin-right:16px;flex-shrink:0;min-height:44px;font-size:14px}
+#examcheck-preview .ec-folder-icon,#examcheck-preview .ec-empty-symbol{display:grid;place-items:center;flex-shrink:0;width:45px;height:45px;background:var(--ec-soft);color:var(--ec-accent);border-radius:11px}
+#examcheck-preview .ec-folder-copy{display:grid;gap:5px;min-width:0}
+#examcheck-preview .ec-folder-copy strong{font-size:16px;font-weight:550;overflow-wrap:anywhere}
+#examcheck-preview .ec-folder-copy small{font-size:13px;color:var(--ec-muted);overflow-wrap:anywhere}
+#examcheck-preview .ec-folder-form{padding:22px;margin-bottom:20px}
+#examcheck-preview .ec-folder-form>label,#examcheck-preview .ec-destination label{font-size:14px;font-weight:550}
+#examcheck-preview .ec-folder-fields{display:flex;gap:10px;margin-top:9px;flex-wrap:wrap}
+#examcheck-preview .ec-input{color:var(--ec-text);background:var(--ec-surface);border:1px solid var(--ec-line);border-radius:7px;padding:10px 12px;font-size:16px;min-height:44px;min-width:0;width:100%}
+#examcheck-preview .ec-input::placeholder{color:var(--ec-muted)}
+#examcheck-preview .ec-folder-fields .ec-input{flex:1 1 230px}
+#examcheck-preview .ec-form-error{color:var(--ec-spelling-line);font-size:14px;margin-top:8px}
+#examcheck-preview .ec-form-error:empty{display:none}
+#examcheck-preview .ec-library-empty{padding:42px 22px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+#examcheck-preview .ec-library-empty h2{font-size:20px;font-weight:550}
+#examcheck-preview .ec-library-empty p{font-size:16px;color:var(--ec-muted);max-width:380px}
+#examcheck-preview .ec-library-note{font-size:13px;color:var(--ec-muted);margin-top:22px}
+#examcheck-preview .ec-exam-list-heading{padding:20px 22px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--ec-line)}
+#examcheck-preview .ec-exam-list{list-style:none;margin:0;padding:0}
+#examcheck-preview .ec-exam-list li+li{border-top:1px solid var(--ec-line)}
+#examcheck-preview .ec-exam-row{width:100%;background:transparent;border:0;display:flex;align-items:center;gap:15px;text-align:left;padding:20px 22px}
+#examcheck-preview .ec-exam-row .ec-folder-copy{flex:1}
+#examcheck-preview .ec-exam-status{font-size:13px;padding:5px 10px;background:var(--ec-bg);border-radius:6px;color:var(--ec-muted);white-space:nowrap}
+#examcheck-preview .ec-exam-status[data-reviewed="true"]{color:var(--ec-accent);background:var(--ec-soft)}
+#examcheck-preview .ec-destination{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:23px}
+#examcheck-preview .ec-destination>span{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap;min-width:0}
+#examcheck-preview .ec-destination strong{font-weight:550;overflow-wrap:anywhere}
+#examcheck-preview .ec-destination label{display:grid;gap:6px;flex:1;max-width:340px;min-width:min(220px,100%)}
+#examcheck-preview .ec-save-button{margin-top:9px}
+#examcheck-preview #ec-folder-title,#examcheck-preview #ec-review-title,#examcheck-preview #ec-exam-crumb{overflow-wrap:anywhere}
+#examcheck-preview .ec-location-label{font-size:13px}
+#examcheck-preview #ec-folder-crumb{font-weight:550;overflow-wrap:anywhere}
+#examcheck-preview .ec-name-editor{padding:22px;margin-bottom:24px}
+#examcheck-preview .ec-name-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:15px}
+#examcheck-preview .ec-name-fields label{display:grid;gap:6px;font-size:14px;font-weight:550;min-width:0;max-width:none}
+#examcheck-preview .ec-name-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+#examcheck-preview .ec-destination{display:block}
+#examcheck-preview .ec-name-fields:has(#ec-rename-student-label[hidden]){grid-template-columns:1fr}
+@container examcheck (max-width:700px){#examcheck-preview .ec-folder-fields{display:grid;grid-template-columns:1fr 1fr}#examcheck-preview .ec-folder-fields .ec-input{grid-column:1/-1}#examcheck-preview .ec-exam-row{flex-wrap:wrap;padding:16px}#examcheck-preview .ec-exam-row .ec-exam-status{margin-left:0}#examcheck-preview .ec-exam-row>.ec-folder-icon{display:none}#examcheck-preview .ec-exam-row .ec-folder-copy{flex-basis:100%}#examcheck-preview .ec-folder-row{padding:16px;gap:10px;flex-wrap:wrap}#examcheck-preview .ec-folder-row>.ec-folder-icon{display:none}#examcheck-preview .ec-folder-row .ec-folder-copy{flex-basis:100%}#examcheck-preview .ec-folder-row .ec-exam-status{margin-left:0}#examcheck-preview .ec-rename-button{margin-right:12px;padding:9px}#examcheck-preview .ec-destination label{max-width:none;min-width:0}#examcheck-preview .ec-name-fields{grid-template-columns:1fr}#examcheck-preview .ec-library-empty{padding:30px 20px}#examcheck-preview .ec-breadcrumb{gap:8px}#examcheck-preview .ec-location-label{display:none}}
+#examcheck-preview .ec-upload-layout{align-items:start}
+#examcheck-preview .ec-source-stack{display:grid;gap:20px;min-width:0}
+#examcheck-preview .ec-task-body,#examcheck-preview .ec-assessment-picker,#examcheck-preview .ec-custom-criteria{padding:18px 22px}
+#examcheck-preview .ec-custom-criteria{padding-top:0}
+#examcheck-preview .ec-field-label{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:14px;font-weight:550;margin-bottom:8px}
+#examcheck-preview textarea{font:inherit;resize:vertical;line-height:1.6}
+#examcheck-preview select{font:inherit;appearance:none;padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='10' viewBox='0 0 14 10'%3E%3Cpath d='m2 3 5 5 5-5' fill='none' stroke='%23777777' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;font-size:14px}
+#examcheck-preview .ec-detect-option{padding:18px 22px;align-items:start;border:0;border-top:1px solid var(--ec-line)}
+#examcheck-preview .ec-detect-option input{margin-top:5px}
+#examcheck-preview .ec-helper,#examcheck-preview .ec-task-photo p{font-size:14px;color:var(--ec-muted);line-height:1.6}
+#examcheck-preview .ec-task-actions{display:flex;gap:10px;flex-wrap:wrap}
+#examcheck-preview .ec-task-body>.ec-task-actions{margin:18px 0}
+#examcheck-preview .ec-task-photo{display:flex;align-items:center;gap:12px;background:var(--ec-soft);padding:14px;border-radius:8px;margin-bottom:18px;font-size:14px}
+#examcheck-preview .ec-task-photo>div{flex:1}
+#examcheck-preview .ec-demo-note{font-size:13px;color:var(--ec-muted);margin-top:14px;border-top:1px solid var(--ec-line);padding-top:12px}
+#examcheck-preview .ec-rubric{background:var(--ec-soft);margin:0 22px 12px;padding:16px;border-radius:8px;font-size:14px}
+#examcheck-preview .ec-rubric h3{font-size:16px}
+#examcheck-preview .ec-rubric dl{margin:12px 0}
+#examcheck-preview .ec-rubric dt{font-weight:600;margin-top:10px}
+#examcheck-preview .ec-rubric dd{margin:3px 0 0;color:var(--ec-muted)}
+#examcheck-preview .ec-option small{font-size:14px}
+#examcheck-preview .ec-camera-task{max-width:450px;margin:auto;padding:28px;background:var(--ec-surface);border:1px solid var(--ec-line);border-radius:12px;line-height:1.8}
+#examcheck-preview .ec-camera-task h2{margin:12px 0}
+#examcheck-preview .ec-sample-task{font-family:Inter,sans-serif;font-size:12px;line-height:1.5;border-bottom:1px solid var(--ec-line);padding-bottom:12px;margin-bottom:16px}
+#examcheck-preview .ec-mini-paper .ec-sample-task{font-size:8px;padding-bottom:6px;margin-bottom:6px}
+#examcheck-preview .ec-review-task{margin-bottom:20px}
+#examcheck-preview #ec-review-task-text{padding:18px 22px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px}
+#examcheck-preview .ec-assessment-feedback{margin-top:20px}
+#examcheck-preview .ec-assessment-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:20px}
+#examcheck-preview .ec-assessment-card{border:1px solid var(--ec-line);border-radius:8px;padding:18px;min-width:0;overflow-wrap:anywhere}
+#examcheck-preview .ec-assessment-card h3{font-size:16px;margin-bottom:8px}
+#examcheck-preview .ec-assessment-card p{font-size:14px;line-height:1.7;color:var(--ec-muted)}
+#examcheck-preview .ec-assessment-card ul{padding-left:20px;font-size:14px;line-height:1.7;white-space:pre-wrap}
+@container examcheck (max-width:700px){#examcheck-preview .ec-assessment-cards{grid-template-columns:1fr}#examcheck-preview .ec-task-body>.ec-task-actions>.ec-button{flex:1}#examcheck-preview .ec-task-body,#examcheck-preview .ec-assessment-picker,#examcheck-preview .ec-custom-criteria{padding-inline:18px}}
+#examcheck-preview .ec-row-actions{display:flex;align-items:center;gap:8px;padding-right:16px;flex-shrink:0}
+#examcheck-preview .ec-row-actions>.ec-button{margin:0;min-height:44px;font-size:14px}
+#examcheck-preview .ec-danger{color:var(--ec-spelling-line);border-color:var(--ec-spelling-line)}
+#examcheck-preview .ec-delete-confirmation{padding:22px;margin-bottom:24px;border-color:var(--ec-spelling-line)}
+#examcheck-preview #ec-delete-description{margin-top:10px;overflow-wrap:anywhere;font-size:16px}
+#examcheck-preview .ec-word-limits{padding:0 22px 22px}
+#examcheck-preview .ec-word-limits h3{font-size:16px}
+#examcheck-preview .ec-word-limits .ec-helper{margin-top:10px}
+#examcheck-preview .ec-word-summary{padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#examcheck-preview .ec-word-summary h2{font-size:18px}
+#examcheck-preview #ec-word-status{font-size:14px;color:var(--ec-accent)}
+#examcheck-preview #ec-word-status[data-outside="true"]{color:var(--ec-spelling-line)}
+@container examcheck (max-width:700px){#examcheck-preview .ec-row-actions{flex-direction:column;justify-content:center;padding:10px 12px 10px 0;gap:6px}#examcheck-preview .ec-row-actions>.ec-button{width:100%;padding:8px 10px}#examcheck-preview .ec-word-limits .ec-name-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+#examcheck-preview .ec-bulk-intro{padding:18px 22px;font-size:16px}
+#examcheck-preview .ec-bulk-list{list-style:none;padding:0;margin:0}
+#examcheck-preview .ec-bulk-row{padding:18px 22px;border-top:1px solid var(--ec-line);display:grid;grid-template-columns:58px minmax(0,1fr);gap:14px;align-items:start}
+#examcheck-preview .ec-bulk-thumbnail{width:58px;height:78px;object-fit:cover;object-position:top;border:1px solid var(--ec-line);border-radius:5px;background:var(--ec-soft);display:grid;place-items:center;font-size:14px}
+#examcheck-preview .ec-review-navigation{margin-bottom:20px;padding:16px;position:sticky;top:8px;z-index:2;box-shadow:0 3px 12px #0000000c}
+#examcheck-preview .ec-review-paging{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px}
+#examcheck-preview .ec-exam-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 2px}
+#examcheck-preview .ec-exam-tabs>.ec-button{flex-shrink:0;white-space:nowrap}
+#examcheck-preview .ec-exam-tabs>[aria-current="page"]{background:var(--ec-soft);border-color:var(--ec-accent);color:var(--ec-accent)}
+#examcheck-preview .ec-review-photo{margin-bottom:20px}
+#examcheck-preview .ec-review-photo .ec-section-heading{flex-wrap:wrap}
+#examcheck-preview .ec-review-photo-stage{background:var(--ec-bg);padding:18px;margin:18px;border-radius:8px;max-height:430px;overflow:auto;scrollbar-gutter:stable}
+#examcheck-preview .ec-review-photo-stage>img{display:block;max-width:100%;max-height:390px;object-fit:contain;margin:auto}
+#examcheck-preview .ec-review-photo-stage.ec-photo-expanded{max-height:none}
+#examcheck-preview .ec-photo-expanded>img{width:100%;max-height:none}
+#examcheck-preview .ec-review-sample-photo{max-width:560px;margin:auto;padding:26px;background:light-dark(#ffffff,#eeeeee);color:#242424;font:16px/2 "Segoe Print","Bradley Hand",cursive;box-shadow:0 2px 10px #00000014}
+#examcheck-preview .ec-review-sample-photo p{margin-top:14px}
+#examcheck-preview .ec-pending{padding:24px;line-height:1.7;font-size:16px}
+#examcheck-preview .ec-pending p{margin-top:12px;color:var(--ec-muted)}
+#examcheck-preview .ec-uploaded-page{display:block;max-width:calc(100% - 40px);max-height:320px;object-fit:contain;margin:20px auto}
+@container examcheck (max-width:700px){#examcheck-preview .ec-review-navigation{position:static}#examcheck-preview .ec-bulk-row{padding:16px;gap:10px}#examcheck-preview .ec-review-photo-stage{padding:10px;margin:14px}#examcheck-preview .ec-review-sample-photo{padding:18px;font-size:14px}}
+#examcheck-preview .ec-exam-selection{align-self:center;flex-shrink:0;margin:0 0 0 18px;width:20px;height:20px;accent-color:var(--ec-accent)}
+#examcheck-preview .ec-select-all{display:flex;align-items:center;gap:9px;font-size:14px}
+#examcheck-preview .ec-select-all input{width:20px;height:20px;accent-color:var(--ec-accent)}
+#examcheck-preview .ec-selection-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 22px;background:var(--ec-soft);border-bottom:1px solid var(--ec-line);font-size:14px}
+#examcheck-preview .ec-folder-help{margin-top:18px}
+#examcheck-preview .ec-folder-help .ec-library-note{margin-top:8px}
+#examcheck-preview #ec-folder-import-progress:not(:empty),#examcheck-preview #ec-folder-import-error:not(:empty){margin-bottom:18px}
+#examcheck-preview .ec-bulk-row strong{overflow-wrap:anywhere}
+@container examcheck (max-width:700px){#examcheck-preview .ec-exam-selection{margin-left:12px}#examcheck-preview .ec-selection-toolbar{padding:14px}#examcheck-preview .ec-exam-row{padding-left:10px}}
+#examcheck-preview .ec-exam-item{flex-wrap:wrap}
+#examcheck-preview .ec-exam-progress{flex:1 0 100%;padding:0 22px 16px 56px;display:grid;gap:6px}
+#examcheck-preview .ec-exam-progress-label{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ec-muted)}
+#examcheck-preview .ec-exam-progress progress{display:block;width:100%;height:9px;border:0;border-radius:6px;overflow:hidden;accent-color:var(--ec-accent);background:var(--ec-line)}
+#examcheck-preview .ec-exam-progress progress::-webkit-progress-bar{background:var(--ec-line);border-radius:6px}
+#examcheck-preview .ec-exam-progress progress::-webkit-progress-value{background:var(--ec-accent);border-radius:6px}
+#examcheck-preview .ec-exam-progress progress::-moz-progress-bar{background:var(--ec-accent);border-radius:6px}
+#examcheck-preview .ec-exam-status{display:inline-flex;align-items:center;gap:6px}
+#examcheck-preview .ec-exam-row:disabled{cursor:progress}
+#examcheck-preview .ec-batch-progress{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;padding:18px 22px;margin-bottom:18px}
+#examcheck-preview #ec-batch-summary{font-size:16px;margin:6px 0}
+@container examcheck (max-width:700px){#examcheck-preview .ec-exam-progress{padding:0 14px 14px 42px}}
+#examcheck-preview .ec-nav{gap:8px}
+#examcheck-preview .ec-nav-button{display:inline-flex;align-items:center;gap:8px;min-height:44px;border:1px solid var(--ec-line);font-size:14px}
+#examcheck-preview .ec-nav-button[data-active="true"]{background:var(--ec-accent);color:var(--ec-on-accent);border-color:var(--ec-accent)}
+#examcheck-preview .ec-breadcrumb{justify-content:space-between;gap:16px;margin:0 0 22px;padding:16px 18px;background:var(--ec-surface);border:1px solid var(--ec-line);border-radius:10px}
+#examcheck-preview .ec-breadcrumb-path{display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex:1;min-width:0;font-size:14px}
+#examcheck-preview .ec-crumb{border:0;background:transparent;color:var(--ec-text);font:inherit;text-decoration:underline;text-underline-offset:4px;padding:6px 2px;min-height:40px;text-align:left;overflow-wrap:anywhere}
+#examcheck-preview .ec-crumb[aria-current="page"]{font-weight:600;text-decoration:none;cursor:default}
+#examcheck-preview #ec-exam-crumb{font-weight:600;color:var(--ec-text)}
+#examcheck-preview #ec-back{flex-shrink:0;border-color:var(--ec-text);font-size:14px}
+#examcheck-preview .ec-workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:26px}
+#examcheck-preview .ec-step{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;border:1px solid var(--ec-line);border-radius:8px;background:var(--ec-surface);font:inherit;font-size:14px;font-weight:600;line-height:1.4;min-height:48px}
+#examcheck-preview .ec-step>span{display:grid;place-items:center;border:1px solid currentColor;border-radius:50%;width:24px;height:24px;flex-shrink:0;font-size:12px}
+#examcheck-preview .ec-step[aria-current="step"]{background:var(--ec-accent);color:var(--ec-on-accent);border-color:var(--ec-accent)}
+#examcheck-preview .ec-step:disabled{opacity:.45;cursor:not-allowed}
+#examcheck-preview .ec-folder-row strong,#examcheck-preview .ec-exam-row strong{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+#examcheck-preview .ec-folder-row:hover strong,#examcheck-preview .ec-exam-row:hover strong{text-decoration-thickness:2px}
+#examcheck-preview .ec-exam-tabs>[aria-current="page"]{background:var(--ec-accent);color:var(--ec-on-accent);border-color:var(--ec-accent)}
+#examcheck-preview .ec-mark.ec-spelling{border-bottom-style:dashed}
+#examcheck-preview .ec-grammar-dot,#examcheck-preview .ec-spelling-dot,#examcheck-preview .ec-structure-dot{width:17px;height:9px;border-radius:0;background:transparent;border-bottom:2px solid currentColor}
+#examcheck-preview .ec-spelling-dot{border-bottom-style:dashed}
+#examcheck-preview .ec-structure-dot{border-bottom:3px double currentColor}
+#examcheck-preview .ec-legend{font-size:14px}
+#examcheck-preview .ec-danger{font-weight:600}
+#examcheck-preview button:focus-visible,#examcheck-preview input:focus-visible,#examcheck-preview textarea:focus-visible,#examcheck-preview select:focus-visible{outline:2px solid var(--ec-accent);outline-offset:3px}
+@container examcheck (max-width:700px){#examcheck-preview .ec-nav{flex-wrap:wrap}#examcheck-preview .ec-breadcrumb{padding:12px;gap:10px}#examcheck-preview .ec-breadcrumb-path{flex-basis:100%}#examcheck-preview #ec-back{width:100%}#examcheck-preview .ec-step{padding:10px 6px;gap:6px;flex-direction:column}#examcheck-preview .ec-review-paging{flex-wrap:wrap}#examcheck-preview #ec-review-position{order:-1;flex-basis:100%;text-align:center}#examcheck-preview .ec-review-paging>.ec-button{flex:1}}
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('examcheck-preview');
+  const find = selector => root.querySelector(selector);
+  const all = selector => [...root.querySelectorAll(selector)];
+  const types = ['grammar', 'spelling', 'punctuation', 'structure'];
+  const writingTypes = ['format', 'register', 'style', 'taskCompletion'];
+  const validTypes = [...types, ...writingTypes];
+  const sampleTask = 'Write an essay about the benefits of learning a new language. Explain two benefits, describe effective learning habits, and support your ideas with examples.';
+  const taskDefaults = () => ({ assessment: 'general', customCriteria: '', detectTask: true, taskText: '', taskSource: '', taskPhoto: false, minWords: '', maxWords: '' });
+  const state = { screen: 'library', hasPage: false, checks: [...types], selected: 'grammar', original: false, width: 'Responsive', folders: [], exams: [], folderId: '', examId: '', title: '', studentName: '' };
+  Object.assign(state, taskDefaults());
+  Object.assign(state, { bulkMode: false, selectedExamIds: [], bulkExamIds: [] });
+  state.checkBatchByFolder = {};
+  const demoCheckDuration = 3200;
+  let captureTarget = 'essay';
+  let renameTarget = null;
+  let deleteTarget = null;
+  let bulkBusy = false;
+  let bulkImportToken = 0;
+  let photoExpanded = false;
+  const currentFolder = () => state.folders.find(folder => folder.id === state.folderId);
+  const folderExams = () => state.exams.filter(exam => exam.folderId === state.folderId);
+  const currentExam = () => state.exams.find(exam => exam.id === state.examId);
+  const isUploadedExam = () => currentExam()?.photoKind === 'upload';
+  const examLabel = exam => exam.studentName ? `${exam.studentName} — ${exam.title}` : exam.title;
+  const descriptions = {
+    grammar: '“My sister” is a singular subject. In the present simple, use “practices” instead of “practice.”',
+    spelling: 'The correct spelling is “difference,” with an “e” after the “r.”',
+    structure: 'Consider moving the sentence about your sister into the second paragraph, where you describe learning habits. This keeps related ideas together.'
+  };
+
+  function assessmentSettings(value) {
+    return {
+      assessment: value.assessment === 'cae' ? 'cae' : 'general',
+      customCriteria: typeof value.customCriteria === 'string' ? value.customCriteria.slice(0, 1200) : '',
+      detectTask: value.detectTask !== false,
+      taskText: typeof value.taskText === 'string' ? value.taskText.slice(0, 4000) : '',
+      taskSource: ['essay', 'photo', 'manual'].includes(value.taskSource) ? value.taskSource : '',
+      taskPhoto: value.taskPhoto === true,
+      minWords: typeof value.minWords === 'string' ? value.minWords.slice(0, 5) : '',
+      maxWords: typeof value.maxWords === 'string' ? value.maxWords.slice(0, 5) : ''
+    };
+  }
+
+  function hasAssessment() {
+    return state.checks.length > 0 || state.assessment === 'cae' || !!state.customCriteria.trim() || !!state.minWords || !!state.maxWords;
+  }
+
+  function wordLimitError() {
+    const limits = [state.minWords, state.maxWords];
+    if (limits.some(value => value !== '' && (!/^[1-9]\d*$/.test(value) || Number(value) > 10000))) return 'Enter whole numbers from 1 to 10,000, or leave the limits blank.';
+    if (state.minWords && state.maxWords && Number(state.minWords) > Number(state.maxWords)) return 'Maximum words must be at least the minimum.';
+    return '';
+  }
+
+  function studentWordCount() {
+    const answer = all('#ec-transcript-text > p').map(paragraph => paragraph.textContent).join(' ');
+    return answer.split(/\s+/u).filter(word => /[\p{L}\p{N}]/u.test(word)).length;
+  }
+
+  function wordCountStatus(count) {
+    if (wordLimitError()) return 'Review the word limits in exam details.';
+    if (state.minWords && count < Number(state.minWords)) return `${Number(state.minWords) - count} words below minimum (${state.minWords})`;
+    if (state.maxWords && count > Number(state.maxWords)) return `${count - Number(state.maxWords)} words above maximum (${state.maxWords})`;
+    if (state.minWords && state.maxWords) return `Within ${state.minWords}–${state.maxWords} words`;
+    if (state.minWords) return `Meets minimum of ${state.minWords} words`;
+    if (state.maxWords) return `Within maximum of ${state.maxWords} words`;
+    return 'No word limit set';
+  }
+
+  function updateWordCount() {
+    find('#ec-min-words').value = state.minWords;
+    find('#ec-max-words').value = state.maxWords;
+    const count = studentWordCount();
+    find('#ec-word-count').textContent = `${count} words · Sample answer`;
+    find('#ec-word-status').textContent = wordCountStatus(count);
+    find('#ec-word-status').dataset.outside = String(!!wordLimitError() || (!!state.minWords && count < Number(state.minWords)) || (!!state.maxWords && count > Number(state.maxWords)));
+  }
+
+  function taskSourceLabel() {
+    if (!state.taskText.trim()) return 'No task supplied';
+    return { essay: 'From essay page · Sample', photo: 'From task photo · Sample', manual: 'Reviewed / typed instructions' }[state.taskSource] || 'Task instructions';
+  }
+
+  function detectSampleTask() {
+    if (!state.detectTask || !state.hasPage || state.taskText.trim() || state.bulkMode || isUploadedExam()) return;
+    state.taskText = sampleTask;
+    state.taskSource = 'essay';
+  }
+
+  function addTaskPhoto() {
+    state.taskPhoto = true;
+    if (!state.taskText.trim()) {
+      state.taskText = sampleTask;
+      state.taskSource = 'photo';
+    }
+    state.screen = 'upload';
+    find('#ec-announcement').textContent = 'Sample task photo added. Existing instructions are kept; review the task text below.';
+  }
+
+  function removeTaskPhoto() {
+    state.taskPhoto = false;
+    if (state.taskSource === 'photo') { state.taskText = ''; state.taskSource = ''; detectSampleTask(); }
+  }
+
+  function updateTask() {
+    find('#ec-detect-task').checked = state.detectTask;
+    find('#ec-task-text').value = state.taskText;
+    find('#ec-task-source').textContent = taskSourceLabel();
+    find('#ec-task-photo').hidden = !state.taskPhoto;
+    find('#ec-assessment').value = state.assessment;
+    find('#ec-cae-criteria').hidden = state.assessment !== 'cae';
+    find('#ec-custom-criteria').value = state.customCriteria;
+    find('#ec-review-task-source').textContent = taskSourceLabel();
+    find('#ec-review-task-text').textContent = state.taskText.trim() || 'No task supplied. Task completion and reader coverage cannot be assessed yet.';
+    find('#ec-camera-label').textContent = captureTarget === 'task' ? 'CAPTURE TASK INSTRUCTIONS' : 'CAPTURE YOUR EXAM';
+    find('.ec-camera-stage').hidden = captureTarget === 'task';
+    find('#ec-task-camera-paper').hidden = captureTarget !== 'task';
+  }
+
+  function taskFeedback() {
+    if (!state.taskText.trim()) return 'Add the task instructions to assess coverage, relevance, and how fully the reader is informed.';
+    if (state.taskText.trim() !== sampleTask) return 'Your edited instructions are saved for checking. Feedback against this task will appear when the checking service is connected.';
+    return 'The sample covers communication, travel, and learning habits. Add more explanation and specific examples so the reader is fully informed.';
+  }
+
+  function assessmentFeedback() {
+    const rows = [];
+    const individual = {
+      format: ['Format', 'The sample uses paragraphs. Add a distinct conclusion to make the essay format clearer.'],
+      register: ['Register', 'The sample uses a mostly neutral tone. Keep the level of formality consistent for the intended reader.'],
+      style: ['Style', 'Vary sentence openings and expand explanations to make the argument more engaging.'],
+      taskCompletion: ['Task completion & reader coverage', taskFeedback()]
+    };
+    if (state.assessment === 'cae') rows.push(
+      ['Content', taskFeedback()],
+      ['Communicative Achievement', 'The sample communicates clear ideas. Develop an essay argument with a consistent register and a clear purpose for the reader.'],
+      ['Organisation', 'Group the learning habits together and add a conclusion that brings the main ideas together.'],
+      ['Language', 'Use a wider range of vocabulary and sentence forms. Review agreement in “My sister practice” and the spelling of “differance”.']
+    );
+    state.checks.filter(type => writingTypes.includes(type)).forEach(type => rows.push(individual[type]));
+    return rows;
+  }
+
+  function makeAssessmentCard([title, feedback]) {
+    const card = document.createElement('article');
+    card.className = 'ec-assessment-card';
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+    const body = document.createElement('p');
+    body.textContent = feedback;
+    card.append(heading, body);
+    return card;
+  }
+
+  function updateAssessmentFeedback() {
+    const cards = assessmentFeedback().map(makeAssessmentCard);
+    if (state.customCriteria.trim()) {
+      const card = makeAssessmentCard(['Custom criteria', 'Saved for checking. Feedback on your custom criteria will appear here when the checking service is connected.']);
+      const list = document.createElement('ul');
+      state.customCriteria.split('\n').filter(line => line.trim()).forEach(line => {
+        const item = document.createElement('li');
+        item.textContent = line.trim();
+        list.append(item);
+      });
+      card.append(list);
+      cards.push(card);
+    }
+    find('#ec-assessment-feedback').hidden = cards.length === 0;
+    find('#ec-assessment-feedback-title').textContent = state.assessment === 'cae' ? 'Cambridge C1 Advanced (CAE) criteria' : 'Writing criteria';
+    find('#ec-assessment-cards').replaceChildren(...cards);
+  }
+
+  function addSampleTaskToPages() {
+    all('.ec-mini-paper, .ec-camera-paper, #ec-original-text').forEach(page => {
+      const instructions = document.createElement('div');
+      instructions.className = 'ec-sample-task';
+      instructions.textContent = `Task: ${sampleTask}`;
+      page.prepend(instructions);
+    });
+  }
+
+  // Browser-only helpers. The saved image is a reduced-size preview, not the original file.
+  const examPhotoLimits = Object.freeze({
+    inputBytes: 10 * 1024 * 1024,
+    pixels: 20_000_000,
+    dataUrlCharacters: 450_000,
+    longestSide: 1600
+  });
+
+  function validateExamPhotoFile(file) {
+    if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      throw new Error('Choose a JPEG, PNG, or WebP photo.');
+    }
+    if (!file.size || file.size > examPhotoLimits.inputBytes) {
+      throw new Error('Each photo must be smaller than 10 MB and must not be empty.');
+    }
+  }
+
+  function readExamPhotoDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      const timer = setTimeout(() => {
+        reject(new Error('The photo took too long to read. Please choose it again.'));
+        reader.abort();
+      }, 15000);
+      reader.onload = () => typeof reader.result === 'string'
+        ? resolve(reader.result) : reject(new Error('This photo could not be read.'));
+      reader.onerror = () => reject(new Error('This photo could not be read. Please choose it again.'));
+      reader.onabort = () => reject(new Error('Reading the photo was cancelled.'));
+      reader.onloadend = () => clearTimeout(timer);
+      try { reader.readAsDataURL(file); }
+      catch { clearTimeout(timer); reject(new Error('This photo could not be read.')); }
+    });
+  }
+
+  function decodeExamPhoto(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const photo = new Image();
+      const finish = error => {
+        clearTimeout(timer);
+        photo.onload = null;
+        photo.onerror = null;
+        if (error) { photo.src = ''; reject(error); } else resolve(photo);
+      };
+      const timer = setTimeout(() => finish(new Error('The photo took too long to open. Try a smaller image.')), 15000);
+      photo.onload = () => finish(null);
+      photo.onerror = () => finish(new Error('This photo could not be opened. Try another JPEG, PNG, or WebP image.'));
+      photo.src = dataUrl;
+    });
+  }
+
+  function validateExamPhotoDimensions(photo) {
+    const pixels = photo.naturalWidth * photo.naturalHeight;
+    if (!Number.isSafeInteger(pixels) || pixels < 1 || pixels > examPhotoLimits.pixels) {
+      throw new Error('Choose a photo with no more than 20 megapixels.');
+    }
+  }
+
+  function drawExamPhotoPreview(photo, longestSide) {
+    const scale = Math.min(1, longestSide / Math.max(photo.naturalWidth, photo.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Photo preview is unavailable in this browser.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(photo, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  function encodeExamPhotoPreview(photo) {
+    for (const longestSide of [examPhotoLimits.longestSide, 1280, 1024]) {
+      const canvas = drawExamPhotoPreview(photo, longestSide);
+      try {
+        for (const quality of [0.84, 0.72, 0.6]) {
+          const image = canvas.toDataURL('image/jpeg', quality);
+          if (image.startsWith('data:image/jpeg;base64,') && image.length <= examPhotoLimits.dataUrlCharacters) return image;
+        }
+      } finally { canvas.width = 0; canvas.height = 0; }
+    }
+    throw new Error('This photo is too detailed for the preview. Try a smaller or cropped image.');
+  }
+
+  async function prepareExamPhoto(file) {
+    validateExamPhotoFile(file);
+    const photo = await decodeExamPhoto(await readExamPhotoDataUrl(file));
+    try {
+      validateExamPhotoDimensions(photo);
+      const image = encodeExamPhotoPreview(photo);
+      const name = String(file.name || 'Exam photo').slice(0, 120);
+      return { name, image };
+    } catch (error) {
+      if (error instanceof Error && error.message) throw error;
+      throw new Error('The photo preview could not be prepared. Try another image.');
+    } finally { photo.src = ''; }
+  }
+
+  function photoSettings(value) {
+    const image = typeof value.image === 'string' && value.image.length <= 450000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value.image) ? value.image : '';
+    return { image, fileName: typeof value.fileName === 'string' ? value.fileName.slice(0, 120) : '', photoKind: value.photoKind === 'upload' ? 'upload' : 'sample', batchId: typeof value.batchId === 'string' ? value.batchId : '' };
+  }
+
+  function selectedExams() {
+    return folderExams().filter(exam => state.selectedExamIds.includes(exam.id) && !isExamChecking(exam));
+  }
+
+  function bulkExams() {
+    return folderExams().filter(exam => state.bulkExamIds.includes(exam.id));
+  }
+
+  function createExamRecord(photo, folderId) {
+    return {
+      id: photo.id || crypto.randomUUID(), folderId,
+      title: typeof photo.title === 'string' ? photo.title.slice(0, 80) : 'Exam',
+      studentName: typeof photo.studentName === 'string' ? photo.studentName.slice(0, 80) : '',
+      ...photoSettings(photo), ...taskDefaults(), checks: [...types], reviewed: false, checkStartedAt: 0
+    };
+  }
+
+  function restoreBulkSelection(value) {
+    const legacy = Array.isArray(value.bulkDraft) ? value.bulkDraft : [];
+    if (state.folders.some(folder => folder.id === value.bulkFolderId)) {
+      legacy.filter(item => item && typeof item.id === 'string').slice(0, 10).forEach(item => {
+        if (!state.exams.some(exam => exam.id === item.id)) state.exams.push(createExamRecord(item, value.bulkFolderId));
+      });
+    }
+    const ids = folderExams().map(exam => exam.id);
+    state.selectedExamIds = Array.isArray(value.selectedExamIds) ? [...new Set(value.selectedExamIds.filter(id => ids.includes(id)))] : [];
+    state.bulkExamIds = Array.isArray(value.bulkExamIds) ? [...new Set(value.bulkExamIds.filter(id => ids.includes(id)))] : [];
+    state.bulkMode = value.bulkMode === true && state.bulkExamIds.length >= 2;
+    if (value.bulkMode && !state.bulkMode) state.screen = currentFolder() ? 'folder' : 'library';
+  }
+
+  function startBulk() {
+    const exams = selectedExams();
+    if (exams.length < 2 || bulkBusy) return;
+    startExam();
+    state.bulkMode = true;
+    state.bulkExamIds = exams.map(exam => exam.id);
+    Object.assign(state, assessmentSettings(exams[0]), { taskText: '', taskSource: '', taskPhoto: false });
+    state.checks = [...exams[0].checks];
+  }
+
+  function makeBulkRow(item, index) {
+    const row = document.createElement('li');
+    row.className = 'ec-bulk-row';
+    const thumbnail = document.createElement(item.image ? 'img' : 'span');
+    thumbnail.className = 'ec-bulk-thumbnail';
+    if (item.image) { thumbnail.src = item.image; thumbnail.alt = `Photo for exam ${index + 1}`; } else thumbnail.textContent = 'Sample';
+    const details = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = examLabel(item);
+    const task = document.createElement('p');
+    task.className = 'ec-helper';
+    task.textContent = item.taskText.trim() ? 'Individual task instructions saved' : 'No task instructions yet';
+    details.append(name, task);
+    row.append(thumbnail, details);
+    return row;
+  }
+
+  function updateBulkSetup() {
+    const bulk = state.bulkMode;
+    const exams = bulkExams();
+    find('#ec-bulk-panel').hidden = !bulk;
+    find('.ec-source').hidden = bulk;
+    find('.ec-destination .ec-name-fields').hidden = bulk;
+    const detection = find('#ec-detect-task').closest('label');
+    const destination = bulk ? find('#ec-bulk-detection') : find('.ec-source');
+    if (detection.parentElement !== destination) destination.append(detection);
+    find('#ec-bulk-count').textContent = `${exams.length} selected`;
+    find('#ec-bulk-list').replaceChildren(...exams.map(makeBulkRow));
+    find('#ec-task-text').placeholder = bulk ? "Optional shared task. Leave blank to keep each exam's instructions." : 'The task instructions will appear here. You can also type or paste them.';
+    if (!bulk) return;
+    find('#ec-upload-title').textContent = 'Check selected exams';
+    find('[data-screen="upload"] .ec-heading>p').textContent = 'Apply the same criteria to the exams selected from your folder.';
+    find('#ec-exam-crumb').textContent = 'Bulk check';
+    const ready = exams.length >= 2 && !bulkBusy && !wordLimitError();
+    find('#ec-check').disabled = !ready || !hasAssessment();
+    find('#ec-save').disabled = !ready;
+    find('#ec-check').textContent = `Check ${exams.length} selected exams`;
+    find('#ec-save').textContent = 'Save criteria for selected exams';
+    find('#ec-check-hint').textContent = !ready ? 'Select at least two exams and check the word limits.' : !hasAssessment() ? 'Select criteria or save for later.' : 'Only these selected exams will be updated.';
+  }
+
+  function addFolderSamples() {
+    if (!currentFolder() || bulkBusy) return;
+    ['Anna', 'Ben', 'Chloe'].forEach(studentName => state.exams.push(createExamRecord({ studentName, title: 'Language essay', fileName: `${studentName} · Sample`, photoKind: 'sample' }, state.folderId)));
+    find('#ec-announcement').textContent = 'Three sample exams added. Click one to check it, or select rows for a bulk check.';
+  }
+
+  function canStorePhoto(image) {
+    return JSON.stringify(state).length + image.length + 2000 < 2000000;
+  }
+
+  function stopPhotoImport() {
+    bulkImportToken += 1;
+    bulkBusy = false;
+    find('#ec-folder-import-progress').textContent = '';
+  }
+
+  async function importFolderFiles(event) {
+    const files = [...event.target.files];
+    event.target.value = '';
+    if (!currentFolder() || state.screen !== 'folder' || bulkBusy || !files.length) return;
+    if (files.length > 10) { find('#ec-folder-import-error').textContent = 'Choose up to 10 photos per upload.'; return; }
+    const token = ++bulkImportToken;
+    const folderId = state.folderId;
+    const errors = [];
+    bulkBusy = true;
+    find('#ec-folder-import-error').textContent = '';
+    updateLibrary();
+    for (const [index, file] of files.entries()) {
+      find('#ec-folder-import-progress').textContent = `Adding photo ${index + 1} of ${files.length}…`;
+      try {
+        const photo = await prepareExamPhoto(file);
+        if (token !== bulkImportToken || state.folderId !== folderId || state.screen !== 'folder') break;
+        if (!canStorePhoto(photo.image)) throw new Error('Browser preview storage is full. Remove some exams or choose smaller photos.');
+        state.exams.push(createExamRecord({ title: photo.name.replace(/\.[^.]+$/, '') || 'Exam', fileName: photo.name, photoKind: 'upload', image: photo.image }, folderId));
+      } catch (error) { errors.push(`${file.name}: ${error.message || 'Unable to open photo.'}`); }
+      if (token !== bulkImportToken || state.folderId !== folderId || state.screen !== 'folder') break;
+      render();
+      persist();
+    }
+    if (token !== bulkImportToken) return;
+    bulkBusy = false;
+    find('#ec-folder-import-progress').textContent = '';
+    find('#ec-folder-import-error').textContent = errors.join(' ');
+    render();
+    persist();
+  }
+
+  function sharedTaskSettings(exam, settings) {
+    if (settings.taskText.trim()) return { taskText: settings.taskText, taskSource: settings.taskSource, taskPhoto: settings.taskPhoto };
+    if (exam.taskText.trim()) return { taskText: exam.taskText, taskSource: exam.taskSource, taskPhoto: exam.taskPhoto };
+    if (exam.photoKind === 'sample' && settings.detectTask) return { taskText: sampleTask, taskSource: 'essay', taskPhoto: exam.taskPhoto };
+    return { taskText: '', taskSource: '', taskPhoto: exam.taskPhoto };
+  }
+
+  function saveBulkExams(reviewed) {
+    const exams = bulkExams();
+    if (!state.bulkMode || exams.length < 2 || bulkBusy || exams.some(isExamChecking) || wordLimitError() || (reviewed && !hasAssessment())) return;
+    const batchId = crypto.randomUUID();
+    const settings = assessmentSettings(state);
+    const startedAt = Date.now();
+    exams.forEach((exam, index) => Object.assign(exam, settings, sharedTaskSettings(exam, settings), { batchId, reviewed: false, checkStartedAt: reviewed ? startedAt + Math.min(index, 10) * 650 : 0, checks: [...state.checks] }));
+    state.bulkMode = false;
+    state.bulkExamIds = [];
+    state.selectedExamIds = [];
+    state.screen = 'folder';
+    if (reviewed) state.checkBatchByFolder[state.folderId] = batchId;
+    find('#ec-announcement').textContent = reviewed ? `Demo check started for ${exams.length} exams. Follow each progress bar below.` : `Criteria saved for ${exams.length} selected exams.`;
+  }
+
+  function isExamChecking(exam) {
+    return !!exam?.checkStartedAt && !exam.reviewed;
+  }
+
+  function examProgress(exam) {
+    if (exam.reviewed) return 100;
+    if (!exam.checkStartedAt) return 0;
+    return Math.max(0, Math.min(100, Math.floor((Date.now() - exam.checkStartedAt) / demoCheckDuration * 100)));
+  }
+
+  function examProgressLabel(exam) {
+    if (exam.reviewed) return exam.photoKind === 'upload' ? 'Demo check complete' : 'Check complete';
+    if (Date.now() < exam.checkStartedAt) return 'Queued';
+    const progress = examProgress(exam);
+    return progress < 30 ? 'Reading photo · demo' : progress < 80 ? 'Checking criteria · demo' : 'Preparing feedback · demo';
+  }
+
+  function makeExamProgress(exam) {
+    const box = document.createElement('div');
+    box.className = 'ec-exam-progress';
+    box.hidden = !exam.checkStartedAt;
+    box.innerHTML = '<div class="ec-exam-progress-label"><span data-progress-stage></span><span data-progress-percent></span></div><progress max="100" value="0"></progress>';
+    box.querySelector('progress').setAttribute('aria-label', `Checking ${examLabel(exam)}`);
+    return box;
+  }
+
+  function updateExamProgress(row, exam) {
+    const checking = isExamChecking(exam);
+    const status = row.querySelector('.ec-exam-status');
+    const label = exam.reviewed ? (exam.photoKind === 'upload' ? 'Demo checked' : 'Checked') : checking ? (Date.now() < exam.checkStartedAt ? 'Queued' : 'Checking') : 'Check exam';
+    status.textContent = '';
+    if (exam.reviewed) {
+      const mark = document.createElement('span');
+      mark.textContent = '✓';
+      mark.setAttribute('aria-hidden', 'true');
+      status.append(mark);
+    }
+    status.append(document.createTextNode(label));
+    status.dataset.reviewed = String(exam.reviewed);
+    row.querySelector('[data-select-exam]').disabled = checking;
+    row.querySelector('[data-exam-id]').disabled = checking;
+    row.querySelector('[data-exam-id]').setAttribute('aria-label', `Open exam: ${examLabel(exam)}. ${label}`);
+    const box = row.querySelector('.ec-exam-progress');
+    box.hidden = !exam.checkStartedAt;
+    box.querySelector('progress').value = examProgress(exam);
+    box.querySelector('[data-progress-stage]').textContent = examProgressLabel(exam);
+    box.querySelector('[data-progress-percent]').textContent = `${examProgress(exam)}%`;
+  }
+
+  function currentCheckBatch() {
+    const batchId = state.checkBatchByFolder[state.folderId];
+    return batchId ? folderExams().filter(exam => exam.batchId === batchId && exam.checkStartedAt) : [];
+  }
+
+  function updateBatchSummary() {
+    const exams = currentCheckBatch();
+    const completed = exams.filter(exam => exam.reviewed).length;
+    find('#ec-batch-progress').hidden = !exams.length;
+    const summary = `${completed} of ${exams.length} exams complete${completed === exams.length ? ' · Ready to review' : ''}`;
+    if (find('#ec-batch-summary').textContent !== summary) find('#ec-batch-summary').textContent = summary;
+    find('#ec-batch-results').disabled = !exams.length || completed !== exams.length;
+  }
+
+  function refreshCheckProgress() {
+    if (!state.exams.some(isExamChecking)) return;
+    let completed = false;
+    state.exams.forEach(exam => {
+      if (!isExamChecking(exam) || examProgress(exam) < 100) return;
+      exam.reviewed = true;
+      completed = true;
+    });
+    all('#ec-exam-list > li').forEach(row => {
+      const exam = state.exams.find(item => item.id === row.dataset.progressExam);
+      if (exam) updateExamProgress(row, exam);
+    });
+    updateBatchSummary();
+    if (completed) {
+      const focusedId = document.activeElement?.dataset?.selectExam;
+      const selectAllFocused = document.activeElement?.id === 'ec-select-all';
+      updateLibrary();
+      updateReviewNavigation();
+      persist();
+      if (focusedId) all('[data-select-exam]').find(input => input.dataset.selectExam === focusedId)?.focus();
+      else if (selectAllFocused) find('#ec-select-all').focus();
+    }
+  }
+
+  function openBatchResults() {
+    const exams = currentCheckBatch();
+    if (exams.length && exams.every(exam => exam.reviewed)) openExam(exams[0].id);
+  }
+
+  function reviewExams() {
+    const batchId = currentExam()?.batchId;
+    return folderExams().filter(exam => !batchId || exam.batchId === batchId);
+  }
+
+  function moveReview(direction) {
+    const exams = reviewExams();
+    const index = exams.findIndex(exam => exam.id === state.examId);
+    if (exams[index + direction]) openExam(exams[index + direction].id);
+  }
+
+  function updateReviewNavigation() {
+    const exams = reviewExams();
+    const index = exams.findIndex(exam => exam.id === state.examId);
+    find('#ec-review-navigation').hidden = exams.length < 2;
+    find('#ec-review-position').textContent = `Exam ${index + 1} of ${exams.length}`;
+    find('#ec-previous-exam').disabled = index <= 0 || isExamChecking(exams[index - 1]);
+    find('#ec-next-exam').disabled = index < 0 || index >= exams.length - 1 || isExamChecking(exams[index + 1]);
+    find('#ec-exam-tabs').replaceChildren(...exams.map((exam, number) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ec-button cursor-interaction';
+      button.dataset.examId = exam.id;
+      button.textContent = `Exam ${number + 1}${exam.studentName ? ` · ${exam.studentName}` : ''}`;
+      button.disabled = isExamChecking(exam);
+      if (exam.id === state.examId) button.setAttribute('aria-current', 'page');
+      return button;
+    }));
+  }
+
+  function updatePhotoPreview() {
+    const exam = currentExam();
+    const uploaded = isUploadedExam();
+    const photo = find('#ec-review-image');
+    const source = exam?.image || '';
+    photo.hidden = !uploaded || !source;
+    if (source && photo.getAttribute('src') !== source) photo.src = source;
+    if (!source) photo.removeAttribute('src');
+    photo.alt = `Exam photo: ${examLabel(state)}`;
+    find('#ec-review-photo-name').textContent = uploaded ? `${exam?.fileName || 'Photo'} · Preview copy` : 'Sample page';
+    find('#ec-review-sample-photo').hidden = uploaded;
+    find('#ec-photo-missing').hidden = !uploaded || !!source;
+    find('#ec-review-photo-stage').classList.toggle('ec-photo-expanded', photoExpanded);
+    find('#ec-photo-zoom').textContent = photoExpanded ? 'Fit photo' : 'Enlarge photo';
+    find('#ec-photo-zoom').setAttribute('aria-expanded', String(photoExpanded));
+    const upload = find('#ec-uploaded-page');
+    upload.hidden = !uploaded || !source;
+    if (source && upload.getAttribute('src') !== source) upload.src = source;
+    if (!source) upload.removeAttribute('src');
+    find('.ec-page-row').hidden = uploaded;
+  }
+
+  function updateUploadedReview() {
+    const uploaded = isUploadedExam();
+    find('#ec-pending-transcript').hidden = !uploaded;
+    find('#ec-pending-feedback').hidden = !uploaded;
+    find('#ec-issue-list').hidden = uploaded;
+    find('.ec-explanation').hidden = uploaded;
+    find('#ec-issue-count').hidden = uploaded;
+    find('[data-action="original"]').hidden = uploaded;
+    find('[data-screen="review"] .ec-heading>p').textContent = uploaded ? 'Uploaded exam · 1 photo · Awaiting transcription' : 'Handwritten essay · 1 page · Sample exam';
+    if (!uploaded) return;
+    find('#ec-transcript-text').hidden = true;
+    find('#ec-original-text').hidden = true;
+    find('.ec-legend').hidden = true;
+    find('#ec-document-heading').textContent = 'Transcription';
+    find('#ec-document-meta').textContent = 'Not yet extracted';
+    find('#ec-document-tip').textContent = 'Your photo and criteria are saved together.';
+    find('#ec-review-summary').textContent = 'No automated findings yet';
+    find('#ec-assessment-feedback').hidden = true;
+    find('#ec-word-count').textContent = 'Word count pending';
+    find('#ec-word-status').textContent = state.minWords || state.maxWords ? `Requested: ${state.minWords || '0'}–${state.maxWords || 'no maximum'} words` : 'No word limit set';
+    find('#ec-word-status').dataset.outside = 'false';
+    const labels = all('input[name="checks"]').filter(input => state.checks.includes(input.value)).map(input => input.closest('label').querySelector('strong').textContent);
+    find('#ec-pending-criteria').textContent = [state.assessment === 'cae' ? 'Cambridge C1 Advanced (CAE)' : '', ...labels, state.customCriteria ? `Custom: ${state.customCriteria}` : ''].filter(Boolean).join(' · ') || 'Word-count check';
+  }
+
+  function persist() {
+    if (!window.openai?.setWidgetState) return;
+    window.openai.setWidgetState({ modelContent: { screen: state.screen, folderCount: state.folders.length, examCount: state.exams.length }, privateContent: { ...state, captureTarget } }).catch(() => {
+      find('#ec-announcement').textContent = 'Changes are kept for this session. Browser storage is unavailable or full.';
+    });
+  }
+
+  function restoreLibrary(value) {
+    state.folders = Array.isArray(value.folders) ? value.folders.filter(folder => folder && typeof folder.id === 'string' && typeof folder.name === 'string').map(folder => ({ id: folder.id, name: folder.name.slice(0, 80) })) : [];
+    const candidates = Array.isArray(value.exams) ? value.exams : [];
+    state.exams = candidates.filter(exam => exam && typeof exam.id === 'string' && typeof exam.title === 'string' && state.folders.some(folder => folder.id === exam.folderId)).map(exam => ({ id: exam.id, folderId: exam.folderId, title: exam.title.slice(0, 80), studentName: typeof exam.studentName === 'string' ? exam.studentName.slice(0, 80) : '', checks: Array.isArray(exam.checks) ? exam.checks.filter(type => validTypes.includes(type)) : [], reviewed: exam.reviewed === true, checkStartedAt: Number.isFinite(exam.checkStartedAt) && exam.checkStartedAt > 0 && exam.checkStartedAt <= Date.now() + 60000 ? exam.checkStartedAt : 0, ...assessmentSettings(exam), ...photoSettings(exam) }));
+    state.folderId = typeof value.folderId === 'string' ? value.folderId : '';
+    state.examId = typeof value.examId === 'string' ? value.examId : '';
+    state.title = typeof value.title === 'string' ? value.title.slice(0, 80) : '';
+    state.studentName = typeof value.studentName === 'string' ? value.studentName.slice(0, 80) : '';
+    if (!currentFolder()) { state.folderId = ''; state.examId = ''; state.screen = 'library'; }
+    if (state.examId && !state.exams.some(exam => exam.id === state.examId && exam.folderId === state.folderId)) { state.examId = ''; state.screen = currentFolder() ? 'folder' : 'library'; }
+    if (state.screen === 'review' && !state.examId) state.screen = currentFolder() ? 'folder' : 'library';
+  }
+
+  function restore(saved) {
+    const value = saved?.privateContent;
+    if (!value || typeof value !== 'object') return;
+    if (['library', 'folder', 'upload', 'camera', 'review'].includes(value.screen)) state.screen = value.screen;
+    if (Array.isArray(value.checks)) state.checks = value.checks.filter(type => validTypes.includes(type));
+    Object.assign(state, assessmentSettings(value));
+    captureTarget = value.captureTarget === 'task' ? 'task' : 'essay';
+    if (['Responsive', 'Mobile'].includes(value.width)) state.width = value.width;
+    state.hasPage = value.hasPage === true;
+    state.original = value.original === true;
+    if (descriptions[value.selected]) state.selected = value.selected;
+    restoreLibrary(value);
+    restoreBulkSelection(value);
+    state.checkBatchByFolder = Object.fromEntries(state.folders.filter(folder => typeof value.checkBatchByFolder?.[folder.id] === 'string').map(folder => [folder.id, value.checkBatchByFolder[folder.id]]));
+  }
+
+  function updateOptions() {
+    find('#ec-empty').hidden = state.hasPage;
+    find('#ec-page-preview').hidden = !state.hasPage;
+    find('#ec-page-count').textContent = state.hasPage ? '1 page added' : 'No pages added';
+    const limitError = wordLimitError();
+    find('#ec-word-limit-error').textContent = limitError;
+    ['#ec-min-words', '#ec-max-words'].forEach(selector => find(selector).setAttribute('aria-invalid', String(!!limitError)));
+    const ready = state.hasPage && !!state.title.trim() && !!currentFolder() && !limitError;
+    find('#ec-check').disabled = !ready || !hasAssessment();
+    find('#ec-save').disabled = !ready;
+    find('#ec-check').textContent = 'Check exam';
+    find('#ec-save').textContent = 'Save exam to folder';
+    all('input[name="checks"]').forEach(input => { input.checked = state.checks.includes(input.value); });
+    find('#ec-check-hint').textContent = !state.hasPage ? 'Add a page to get started.' : !state.title.trim() ? 'Give this exam a name.' : limitError ? 'Correct the word limits to continue.' : !hasAssessment() ? 'Select checks, or save for later.' : 'Sample exam · No grade assigned';
+    if (state.bulkMode) updateBulkSetup();
+  }
+
+  function updateFeedback() {
+    const available = Object.keys(descriptions).filter(type => state.checks.includes(type));
+    if (!available.includes(state.selected)) state.selected = available[0] || '';
+    all('.ec-issue').forEach(button => { button.hidden = !available.includes(button.dataset.issue); });
+    all('.ec-mark').forEach(button => { button.disabled = !available.includes(button.dataset.issue); });
+    all('[data-issue]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.issue === state.selected)); });
+    find('#ec-issue-count').textContent = available.length;
+    find('#ec-detail-label').textContent = state.selected === 'structure' ? 'A SUGGESTION TO CONSIDER' : state.selected ? 'WHY THIS CHANGE?' : 'NO FINDINGS';
+    find('#ec-detail-text').textContent = descriptions[state.selected] || 'The sample has no findings for the checks you selected.';
+    const corrections = available.filter(type => type !== 'structure').length;
+    find('#ec-review-summary').textContent = `${corrections} correction${corrections === 1 ? '' : 's'} · ${available.includes('structure') ? '1 suggestion' : '0 suggestions'}`;
+    all('.ec-legend > span').forEach((item, index) => { item.hidden = !available.includes(['grammar', 'spelling', 'structure'][index]); });
+  }
+
+  function updateDocument() {
+    find('#ec-transcript-text').hidden = state.original;
+    find('#ec-original-text').hidden = !state.original;
+    find('#ec-original-label').textContent = state.original ? 'View transcript' : 'View original';
+    find('#ec-document-heading').textContent = state.original ? 'Original page' : 'Original text';
+    find('#ec-document-meta').textContent = state.original ? 'Handwriting illustration · Sample' : "Student's wording preserved";
+    find('#ec-document-tip').textContent = state.original ? 'Sample illustration; your uploaded photo would appear here.' : 'Select a highlighted word to see its feedback.';
+    find('.ec-legend').hidden = state.original;
+  }
+
+  function makeRenameButton(kind, item) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ec-button ec-rename-button cursor-interaction';
+    button.dataset[kind === 'folder' ? 'renameFolder' : 'renameExam'] = item.id;
+    button.textContent = 'Rename';
+    button.setAttribute('aria-label', `Rename ${kind}: ${kind === 'folder' ? item.name : examLabel(item)}`);
+    return button;
+  }
+
+  function makeFolderRow(folder) {
+    const row = document.createElement('li');
+    row.className = 'ec-list-item';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ec-folder-row cursor-interaction';
+    button.dataset.folderId = folder.id;
+    button.setAttribute('aria-label', `Open folder: ${folder.name}`);
+    button.innerHTML = '<span class="ec-folder-icon"><i data-lucide="folder" aria-hidden="true"></i></span><span class="ec-folder-copy"><strong></strong><small>Open folder</small></span><span class="ec-exam-status"></span>';
+    button.querySelector('strong').textContent = folder.name;
+    const count = state.exams.filter(exam => exam.folderId === folder.id).length;
+    button.querySelector('.ec-exam-status').textContent = `${count} exam${count === 1 ? '' : 's'}`;
+    row.append(button, makeRowActions('folder', folder));
+    return row;
+  }
+
+  function makeExamRow(exam) {
+    const row = document.createElement('li');
+    row.className = 'ec-list-item ec-exam-item';
+    row.dataset.progressExam = exam.id;
+    const selection = document.createElement('input');
+    selection.type = 'checkbox';
+    selection.className = 'ec-exam-selection';
+    selection.dataset.selectExam = exam.id;
+    selection.checked = state.selectedExamIds.includes(exam.id);
+    selection.setAttribute('aria-label', `Select exam: ${examLabel(exam)}`);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ec-exam-row cursor-interaction';
+    button.dataset.examId = exam.id;
+    button.setAttribute('aria-label', `Open exam: ${examLabel(exam)}`);
+    button.innerHTML = '<span class="ec-folder-icon"><i data-lucide="file-text" aria-hidden="true"></i></span><span class="ec-folder-copy"><strong></strong><small></small></span><span class="ec-exam-status"></span>';
+    button.querySelector('strong').textContent = exam.studentName || exam.title;
+    const kind = exam.photoKind === 'upload' ? 'Uploaded photo' : 'Sample exam';
+    button.querySelector('small').textContent = exam.studentName ? `${exam.title} · ${kind}` : `Student not named · ${kind}`;
+    row.append(selection, button, makeRowActions('exam', exam), makeExamProgress(exam));
+    updateExamProgress(row, exam);
+    return row;
+  }
+
+  function makeRowActions(kind, item) {
+    const actions = document.createElement('div');
+    actions.className = 'ec-row-actions';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ec-button ec-danger cursor-interaction';
+    button.dataset.deleteKind = kind;
+    button.dataset.deleteId = item.id;
+    button.textContent = 'Delete';
+    button.setAttribute('aria-label', `Delete ${kind}: ${kind === 'folder' ? item.name : examLabel(item)}`);
+    actions.append(makeRenameButton(kind, item), button);
+    return actions;
+  }
+
+  function closeDeleteConfirmation() {
+    deleteTarget = null;
+    find('#ec-delete-confirmation').hidden = true;
+  }
+
+  function requestDeletion(kind, id) {
+    const item = (kind === 'folder' ? state.folders : folderExams()).find(entry => entry.id === id);
+    if (!item) return;
+    closeNameEditor();
+    find('#ec-folder-form').hidden = true;
+    deleteTarget = { kind, id, folderId: state.folderId };
+    const name = kind === 'folder' ? item.name : examLabel(item);
+    const count = state.exams.filter(exam => exam.folderId === id).length;
+    find('#ec-delete-heading').textContent = `Delete ${kind}?`;
+    find('#ec-delete-description').textContent = kind === 'folder'
+      ? `Delete “${name}”${count ? ` and its ${count} exam${count === 1 ? '' : 's'}` : ''}? This cannot be undone.`
+      : `Delete “${name}” and its feedback? This cannot be undone.`;
+    find('#ec-delete-confirm').textContent = `Delete ${kind}`;
+    find('#ec-delete-confirmation').hidden = false;
+    find('#ec-delete-cancel').focus();
+  }
+
+  function cancelDeletion() {
+    const target = deleteTarget;
+    closeDeleteConfirmation();
+    all('[data-delete-kind]').find(button => button.dataset.deleteKind === target?.kind && button.dataset.deleteId === target?.id)?.focus();
+  }
+
+  function clearExamDraft() {
+    Object.assign(state, taskDefaults(), { examId: '', title: '', studentName: '', hasPage: false, checks: [...types], original: false, selected: 'grammar' });
+    captureTarget = 'essay';
+  }
+
+  function confirmDeletion() {
+    if (!deleteTarget) return;
+    const { kind, id, folderId } = deleteTarget;
+    const item = (kind === 'folder' ? state.folders : folderExams()).find(entry => entry.id === id);
+    if (!item || (kind === 'exam' && folderId !== state.folderId)) return closeDeleteConfirmation();
+    if (kind === 'folder') {
+      state.folders = state.folders.filter(folder => folder.id !== id);
+      delete state.checkBatchByFolder[id];
+      state.exams = state.exams.filter(exam => exam.folderId !== id);
+      if (state.folderId === id) { state.bulkMode = false; state.selectedExamIds = []; state.bulkExamIds = []; stopPhotoImport(); }
+      if (state.folderId === id) { state.folderId = ''; clearExamDraft(); }
+      state.screen = 'library';
+    } else {
+      state.exams = state.exams.filter(exam => exam.id !== id);
+      if (state.examId === id) clearExamDraft();
+      state.screen = 'folder';
+    }
+    closeDeleteConfirmation();
+    find('#ec-announcement').textContent = kind === 'folder' ? 'Folder and its exams deleted.' : 'Exam deleted.';
+    render();
+    persist();
+    find(kind === 'folder' ? '[data-screen="library"] [data-action="create-folder"]' : '#ec-folder-upload').focus();
+  }
+
+  function updateLibrary() {
+    find('#ec-library-empty').hidden = state.folders.length > 0;
+    find('#ec-folder-list-panel').hidden = state.folders.length === 0;
+    find('#ec-folder-list').replaceChildren(...state.folders.map(makeFolderRow));
+    const exams = folderExams();
+    const selectable = exams.filter(exam => !isExamChecking(exam));
+    state.selectedExamIds = state.selectedExamIds.filter(id => selectable.some(exam => exam.id === id));
+    state.bulkExamIds = state.bulkExamIds.filter(id => exams.some(exam => exam.id === id));
+    find('#ec-folder-empty').hidden = exams.length > 0;
+    find('#ec-exam-list-panel').hidden = exams.length === 0;
+    find('#ec-exam-list').replaceChildren(...exams.map(makeExamRow));
+    find('#ec-folder-summary').textContent = `${exams.length} exam${exams.length === 1 ? '' : 's'} · All your uploads in one place`;
+    const count = state.selectedExamIds.length;
+    find('#ec-selection-toolbar').hidden = count === 0;
+    find('#ec-selection-count').textContent = `${count} selected${count === 1 ? ' · Select one more for bulk check' : ''}`;
+    find('#ec-select-all').checked = selectable.length > 0 && count === selectable.length;
+    find('#ec-select-all').indeterminate = count > 0 && count < selectable.length;
+    find('#ec-select-all').disabled = selectable.length === 0;
+    find('#ec-bulk-check-selected').disabled = count < 2 || bulkBusy;
+    ['#ec-folder-upload', '#ec-folder-take-photo', '#ec-folder-samples'].forEach(selector => { find(selector).disabled = bulkBusy; });
+    if (globalThis.lucide) lucide.createIcons({ attrs: { width: 16, height: 16 } });
+  }
+
+  function updateContext() {
+    const folderName = currentFolder()?.name || '';
+    find('#ec-folder-title').textContent = folderName;
+    find('#ec-folder-crumb').textContent = folderName;
+    find('#ec-upload-destination').textContent = folderName;
+    find('#ec-breadcrumb').hidden = state.screen === 'library';
+    find('#ec-back').textContent = state.screen === 'folder' ? 'Back to all folders' : state.screen === 'camera' ? 'Back to criteria' : 'Back to exam list';
+    find('#ec-exam-crumb').textContent = ['upload', 'camera', 'review'].includes(state.screen) ? examLabel(state) || 'New exam' : '';
+    find('#ec-review-title').textContent = examLabel(state) || 'Learning a new language';
+    find('#ec-upload-title').textContent = state.examId ? 'Check exam' : 'Add exam';
+    find('[data-screen="upload"] .ec-heading>p').textContent = "Name the student's exam, add a photo, and choose what to check.";
+    find('#ec-exam-name').value = state.title;
+    find('#ec-student-name').value = state.studentName;
+  }
+
+  function updateNavigation() {
+    const inExam = ['upload', 'camera', 'review'].includes(state.screen);
+    find('#ec-nav-exams').hidden = state.screen === 'library' || !currentFolder();
+    all('.ec-nav-button').forEach(button => {
+      const current = button.dataset.action === 'library' ? state.screen === 'library' : state.screen === 'folder';
+      button.dataset.active = String(button.dataset.action === 'library' ? state.screen === 'library' : state.screen !== 'library');
+      if (current) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+    });
+    find('#ec-exam-divider').hidden = !inExam;
+    find('#ec-exam-crumb').hidden = !inExam;
+    find('#ec-folder-crumb').disabled = state.screen === 'folder';
+    if (state.screen === 'folder') find('#ec-folder-crumb').setAttribute('aria-current', 'page'); else find('#ec-folder-crumb').removeAttribute('aria-current');
+    find('#ec-workflow').hidden = !inExam;
+    all('.ec-step').forEach(button => {
+      const active = state.screen === 'review' ? button.dataset.action === 'current-review' : button.dataset.action === 'edit-assessment';
+      if (active) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+    });
+    const exam = currentExam();
+    find('#ec-step-review').disabled = state.bulkMode || !exam || exam.folderId !== state.folderId || !exam.reviewed || isExamChecking(exam);
+    find('#ec-step-review').setAttribute('aria-label', 'Review saved results');
+  }
+
+  function render() {
+    if (state.screen !== 'library' && !currentFolder()) state.screen = 'library';
+    root.style.maxWidth = state.width === 'Mobile' ? '390px' : '100%';
+    all('[data-screen]').forEach(section => { section.hidden = section.dataset.screen !== state.screen; });
+    updateLibrary();
+    updateContext();
+    updateOptions();
+    updateFeedback();
+    updateDocument();
+    updateTask();
+    updateAssessmentFeedback();
+    updateWordCount();
+    updateBulkSetup();
+    updateReviewNavigation();
+    updatePhotoPreview();
+    updateUploadedReview();
+    updateBatchSummary();
+    updateNavigation();
+  }
+
+  function addSample(message) {
+    if (!currentFolder()) return;
+    state.hasPage = true;
+    detectSampleTask();
+    state.screen = 'upload';
+    find('#ec-announcement').textContent = message;
+  }
+
+  function showFolderForm() {
+    state.screen = 'library';
+    find('#ec-folder-form').hidden = false;
+    find('#ec-folder-error').textContent = '';
+    render();
+    find('#ec-folder-name').focus();
+  }
+
+  function createFolder(event) {
+    event?.preventDefault();
+    const name = find('#ec-folder-name').value.trim();
+    const duplicate = state.folders.some(folder => folder.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (!name || duplicate) {
+      find('#ec-folder-error').textContent = !name ? 'Enter a folder name.' : 'A folder with this name already exists.';
+      find('#ec-folder-name').focus();
+      return;
+    }
+    const folder = { id: crypto.randomUUID(), name };
+    state.folders.push(folder);
+    find('#ec-folder-form').reset();
+    find('#ec-folder-form').hidden = true;
+    openFolder(folder.id);
+    find('#ec-folder-upload').focus();
+  }
+
+  function openFolder(id) {
+    if (!state.folders.some(folder => folder.id === id)) return;
+    closeNameEditor();
+    closeDeleteConfirmation();
+    state.bulkMode = false;
+    state.selectedExamIds = [];
+    state.bulkExamIds = [];
+    stopPhotoImport();
+    find('#ec-folder-import-error').textContent = '';
+    state.folderId = id;
+    state.screen = 'folder';
+    find('#ec-announcement').textContent = '';
+    render();
+    persist();
+  }
+
+  function startExam() {
+    if (!currentFolder()) { state.screen = 'library'; return; }
+    state.examId = '';
+    state.bulkMode = false;
+    stopPhotoImport();
+    state.title = `Exam ${folderExams().length + 1}`;
+    state.studentName = '';
+    state.hasPage = false;
+    state.checks = [...types];
+    Object.assign(state, taskDefaults());
+    captureTarget = 'essay';
+    state.original = false;
+    state.selected = 'grammar';
+    state.screen = 'upload';
+  }
+
+  function openExam(id) {
+    const exam = state.exams.find(item => item.id === id && item.folderId === state.folderId);
+    if (!exam || isExamChecking(exam)) return;
+    closeNameEditor();
+    closeDeleteConfirmation();
+    state.bulkMode = false;
+    stopPhotoImport();
+    photoExpanded = false;
+    state.examId = exam.id;
+    state.title = exam.title;
+    state.studentName = exam.studentName || '';
+    state.checks = [...exam.checks];
+    Object.assign(state, assessmentSettings(exam));
+    state.hasPage = true;
+    state.original = false;
+    state.screen = exam.reviewed ? 'review' : 'upload';
+    if (!exam.reviewed) detectSampleTask();
+    find('#ec-announcement').textContent = '';
+    render();
+    persist();
+  }
+
+  function saveExam(reviewed) {
+    if (state.bulkMode) return saveBulkExams(reviewed);
+    if (!currentFolder() || !state.hasPage || !state.title.trim() || isExamChecking(currentExam()) || wordLimitError() || (reviewed && !hasAssessment())) return;
+    const exam = { id: state.examId || crypto.randomUUID(), folderId: state.folderId, title: state.title.trim(), studentName: state.studentName.trim(), checks: [...state.checks], reviewed, checkStartedAt: 0, ...assessmentSettings(state), ...photoSettings(currentExam() || {}) };
+    const index = state.exams.findIndex(item => item.id === exam.id);
+    if (index === -1) state.exams.push(exam); else state.exams[index] = exam;
+    state.examId = exam.id;
+    state.title = exam.title;
+    state.studentName = exam.studentName;
+    state.screen = reviewed ? 'review' : 'folder';
+    find('#ec-announcement').textContent = reviewed ? (isUploadedExam() ? 'Criteria saved. Photo transcription is not connected in this mockup.' : 'Sample feedback ready. This exam is saved in your folder.') : 'Exam saved in your folder.';
+  }
+
+  function closeNameEditor() {
+    renameTarget = null;
+    find('#ec-name-editor').hidden = true;
+  }
+
+  function startRename(kind, id) {
+    const items = kind === 'folder' ? state.folders : folderExams();
+    const item = items.find(entry => entry.id === id);
+    if (!item) return;
+    closeDeleteConfirmation();
+    renameTarget = { kind, id };
+    find('#ec-folder-form').hidden = true;
+    find('#ec-name-editor').hidden = false;
+    find('#ec-name-editor-heading').textContent = kind === 'folder' ? 'Rename folder' : 'Rename exam';
+    find('#ec-rename-student-label').hidden = kind === 'folder';
+    find('#ec-rename-title-label').textContent = kind === 'folder' ? 'Folder name' : 'Exam title';
+    find('#ec-rename-title').value = kind === 'folder' ? item.name : item.title;
+    find('#ec-rename-student').value = item.studentName || '';
+    find('#ec-name-error').textContent = '';
+    find(kind === 'folder' ? '#ec-rename-title' : '#ec-rename-student').focus();
+  }
+
+  function saveName() {
+    if (!renameTarget) return;
+    const { kind, id } = renameTarget;
+    const item = (kind === 'folder' ? state.folders : folderExams()).find(entry => entry.id === id);
+    if (!item) return closeNameEditor();
+    const name = find('#ec-rename-title').value.trim();
+    const duplicate = kind === 'folder' && state.folders.some(folder => folder.id !== id && folder.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (!name || duplicate) {
+      find('#ec-name-error').textContent = duplicate ? 'A folder with this name already exists.' : `Enter ${kind === 'folder' ? 'a folder name' : 'an exam title'}.`;
+      find('#ec-rename-title').focus();
+      return;
+    }
+    if (kind === 'folder') item.name = name;
+    else { item.title = name; item.studentName = find('#ec-rename-student').value.trim(); }
+    if (kind === 'exam' && state.examId === id) { state.title = item.title; state.studentName = item.studentName; }
+    closeNameEditor();
+    find('#ec-announcement').textContent = kind === 'folder' ? 'Folder renamed.' : 'Student name and exam title saved.';
+  }
+
+  function goBack() {
+    state.screen = state.screen === 'folder' ? 'library' : state.screen === 'camera' ? 'upload' : 'folder';
+  }
+
+  const actions = {
+    library: () => { state.screen = 'library'; },
+    folder: () => { state.screen = 'folder'; },
+    new: startExam,
+    bulk: startBulk,
+    'batch-results': openBatchResults,
+    'folder-upload': () => find('#ec-folder-files').click(),
+    'folder-camera': () => find('#ec-folder-camera').click(),
+    'folder-samples': addFolderSamples,
+    'clear-selection': () => { state.selectedExamIds = []; },
+    'previous-exam': () => moveReview(-1),
+    'next-exam': () => moveReview(1),
+    'photo-zoom': () => { photoExpanded = !photoExpanded; },
+    back: goBack,
+    'save-name': saveName,
+    'cancel-name': closeNameEditor,
+    'create-folder': showFolderForm,
+    'save-folder': createFolder,
+    'cancel-folder': () => { find('#ec-folder-form').hidden = true; },
+    cancel: () => { state.screen = 'upload'; },
+    camera: () => { captureTarget = 'essay'; state.screen = 'camera'; },
+    'task-camera': () => { captureTarget = 'task'; state.screen = 'camera'; },
+    'task-upload': addTaskPhoto,
+    'remove-task-photo': removeTaskPhoto,
+    'edit-assessment': () => { state.screen = 'upload'; },
+    'current-review': () => { if (currentExam()?.reviewed && !state.bulkMode) openExam(state.examId); },
+    sample: () => addSample('Sample exam added. Choose your checks to continue.'),
+    capture: () => captureTarget === 'task' ? addTaskPhoto() : addSample('Sample photo added. Choose your checks to continue.'),
+    upload: () => addSample('Sample upload added for this preview.'),
+    remove: () => { state.hasPage = false; if (state.taskSource === 'essay') { state.taskText = ''; state.taskSource = ''; } },
+    original: () => { state.original = !state.original; },
+    check: () => saveExam(true),
+    'save-exam': () => saveExam(false)
+  };
+
+  function handleAction(action) {
+    find('#ec-announcement').textContent = '';
+    closeDeleteConfirmation();
+    if (['library', 'folder', 'create-folder'].includes(action) || (action === 'back' && state.screen !== 'camera')) { state.bulkMode = false; stopPhotoImport(); }
+    if (action !== 'save-name' && action !== 'cancel-name') closeNameEditor();
+    actions[action]?.();
+    render();
+    persist();
+  }
+
+  root.addEventListener('click', event => {
+    const deletion = event.target.closest('[data-delete-kind]');
+    if (deletion) return requestDeletion(deletion.dataset.deleteKind, deletion.dataset.deleteId);
+    const folderRename = event.target.closest('[data-rename-folder]');
+    if (folderRename) return startRename('folder', folderRename.dataset.renameFolder);
+    const examRename = event.target.closest('[data-rename-exam]');
+    if (examRename) return startRename('exam', examRename.dataset.renameExam);
+    const folder = event.target.closest('[data-folder-id]');
+    if (folder) return openFolder(folder.dataset.folderId);
+    const exam = event.target.closest('[data-exam-id]');
+    if (exam) return openExam(exam.dataset.examId);
+    const action = event.target.closest('[data-action]');
+    if (action) return handleAction(action.dataset.action);
+    const issue = event.target.closest('[data-issue]');
+    if (!issue || issue.disabled) return;
+    state.selected = issue.dataset.issue;
+    updateFeedback();
+    persist();
+  });
+
+  find('#ec-delete-confirm').addEventListener('click', confirmDeletion);
+  find('#ec-folder-files').addEventListener('change', importFolderFiles);
+  find('#ec-folder-camera').addEventListener('change', importFolderFiles);
+  find('#ec-delete-cancel').addEventListener('click', cancelDeletion);
+  root.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || !deleteTarget) return;
+    event.preventDefault();
+    cancelDeletion();
+  });
+
+  find('#ec-folder-form').addEventListener('submit', createFolder);
+  find('#ec-folder-name').addEventListener('keydown', event => {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    event.preventDefault();
+    handleAction('save-folder');
+  });
+  function updateDraftIdentity(event) {
+    const field = event.target.id === 'ec-student-name' ? 'studentName' : 'title';
+    state[field] = event.target.value;
+    find('#ec-exam-crumb').textContent = examLabel(state) || 'New exam';
+    updateOptions();
+    persist();
+  }
+
+  ['#ec-exam-name', '#ec-student-name'].forEach(selector => {
+    find(selector).addEventListener('input', updateDraftIdentity);
+  });
+
+  ['#ec-rename-title', '#ec-rename-student'].forEach(selector => {
+    find(selector).addEventListener('keydown', event => {
+      if (event.key !== 'Enter' || event.isComposing) return;
+      event.preventDefault();
+      handleAction('save-name');
+    });
+  });
+
+  root.addEventListener('change', event => {
+    if (event.target.matches('[data-select-exam], #ec-select-all')) {
+      const selectedId = event.target.dataset.selectExam;
+      if (event.target.id === 'ec-select-all') state.selectedExamIds = event.target.checked ? folderExams().filter(exam => !isExamChecking(exam)).map(exam => exam.id) : [];
+      else if (event.target.checked) state.selectedExamIds = [...new Set([...state.selectedExamIds, event.target.dataset.selectExam])];
+      else state.selectedExamIds = state.selectedExamIds.filter(id => id !== event.target.dataset.selectExam);
+      updateLibrary();
+      persist();
+      (selectedId ? all('[data-select-exam]').find(input => input.dataset.selectExam === selectedId) : find('#ec-select-all'))?.focus();
+      return;
+    }
+    if (!event.target.matches('input[name="checks"]')) return;
+    state.checks = all('input[name="checks"]:checked').map(input => input.value);
+    render();
+    persist();
+  });
+
+  find('#ec-assessment').addEventListener('change', event => {
+    state.assessment = event.target.value;
+    if (state.assessment === 'cae' && !state.minWords && !state.maxWords) { state.minWords = '220'; state.maxWords = '260'; }
+    render();
+    persist();
+  });
+
+  ['#ec-min-words', '#ec-max-words'].forEach(selector => {
+    find(selector).addEventListener('input', event => {
+      state[event.target.id === 'ec-min-words' ? 'minWords' : 'maxWords'] = event.target.value;
+      updateOptions();
+      persist();
+    });
+  });
+
+  find('#ec-detect-task').addEventListener('change', event => {
+    state.detectTask = event.target.checked;
+    detectSampleTask();
+    render();
+    persist();
+  });
+
+  find('#ec-task-text').addEventListener('input', event => {
+    state.taskText = event.target.value;
+    state.taskSource = state.taskText.trim() ? 'manual' : '';
+    find('#ec-task-source').textContent = taskSourceLabel();
+    persist();
+  });
+
+  find('#ec-custom-criteria').addEventListener('input', event => {
+    state.customCriteria = event.target.value;
+    updateOptions();
+    persist();
+  });
+
+  window.addEventListener('openai:set_globals', event => {
+    const saved = event.detail?.globals?.widgetState;
+    if (!saved) return;
+    restore(saved);
+    render();
+  });
+
+  addSampleTaskToPages();
+  find('#ec-review-sample-photo').innerHTML = find('#ec-original-text').innerHTML;
+  restore(window.openai?.widgetState);
+  render();
+  refreshCheckProgress();
+  window.setInterval(refreshCheckProgress, 400);
+  if (globalThis.Tweak) {
+    const tweak = new Tweak({ container: root, onChange: () => { render(); persist(); } });
+    tweak.addSelect(state, 'width', { label: 'Preview width', options: ['Responsive', 'Mobile'] });
+  }
+})();
+</script>

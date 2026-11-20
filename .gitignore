@@ -1,0 +1,46 @@
+# Local configuration
+.env
+.env.*
+!.env.example
+!frontend/.env.api
+!frontend/.env.demo
+
+# Frontend dependencies and generated builds
+node_modules/
+dist/
+.sites-runtime/
+*.tsbuildinfo
+/backend/static/
+/output/
+
+# Go build outputs
+/backend/examcheck
+/backend/bin/
+*.test
+coverage.out
+
+# Local database files and uploads
+/backend/data/
+/backend/uploads/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+
+# Logs, coverage, and caches
+*.log
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.cache/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+
+# macOS metadata
+.DS_Store

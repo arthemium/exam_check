@@ -1,0 +1,28 @@
+x-production-environment: &production-environment
+  APP_ENV: production
+  COOKIE_SECURE: "true"
+  PUBLIC_BASE_URL: https://${DOMAIN:?Set DOMAIN to your production hostname}
+
+services:
+  app:
+    environment: *production-environment
+  caddy:
+    image: caddy:2-alpine
+    profiles: [production]
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN to your production hostname}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

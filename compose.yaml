@@ -1,0 +1,36 @@
+name: examcheck
+
+services:
+  app:
+    build:
+      context: ./backend
+    image: examcheck-backend:local
+    env_file: .env
+    environment:
+      DB_PATH: /data/db/examcheck.db
+      UPLOAD_DIR: /data/uploads
+    init: true
+    user: "10001:10001"
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - sqlitedata:/data/db
+      - uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "/app/examcheck", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      start_period: 15s
+      retries: 5
+
+volumes:
+  sqlitedata:
+  uploads:

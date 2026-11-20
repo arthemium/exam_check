@@ -90,9 +90,9 @@ func startWorker(ctx context.Context, cfg app.Config, store *app.Store) <-chan s
 }
 
 func healthcheck() error {
-	address := os.Getenv("LISTEN_ADDR")
-	if address == "" {
-		address = ":8000"
+	address, err := app.ListenAddress()
+	if err != nil {
+		return err
 	}
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {

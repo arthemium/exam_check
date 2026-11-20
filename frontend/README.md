@@ -19,13 +19,11 @@ Vite proxies `/api` and `/auth` to `http://localhost:8000` by default. For a dif
 ## Build and run with Go in Docker
 
 ```sh
-cd frontend
-npm run build:server
-cd ..
-docker compose up --build -d
+# From the repository root:
+docker compose --env-file .env up --build
 ```
 
-`build:server` compiles the React app and copies its assets into `backend/static/`. Go then serves both the frontend and API from one container. Node is not needed at runtime. The host port comes from `APP_PORT` in the root `.env`; `PUBLIC_BASE_URL` must use the same port.
+The root Dockerfile compiles the React app and Go backend, then serves both from one container. Node is only used during the build. The host port comes from `APP_PORT` in the root `.env`; `PUBLIC_BASE_URL` must use the same port. For running Go directly on the host, `npm run build:server` still copies frontend assets into `backend/static/`.
 
 The app supports folders, student names, uploads/camera capture, deletion, individual/bulk checks, task transcription, eight writing checks, CAE/custom assessments, and word limits. Bulk jobs and results are stored by the backend in SQLite. CAE scores are estimates; missing task evidence and uncertain handwriting are flagged.
 

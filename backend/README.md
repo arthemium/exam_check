@@ -11,7 +11,7 @@ Run from the repository root:
 ```sh
 cp .env.example .env
 # Set LOGIN_PASSWORD and, when needed, OpenAI credentials.
-docker compose up --build -d
+docker compose --env-file .env up --build -d
 docker compose --env-file .env logs -f --tail=100 app
 ```
 
@@ -23,9 +23,11 @@ Supply `OPENAI_API_KEY` before requesting checks. Model selection comes from SQL
 
 OpenAI prompts use two tables: `main_prompts(key, body, model)` holds `transcriber` and `checker`; `prompt_additions(key, body)` holds the 15 check, assessment, task, custom, and word-limit sections. Migration moves existing text unchanged and removes the old `prompt_templates` table. Defaults live in `internal/app/prompt_defaults.go` and are seeded once. Saved prompt and model edits survive restarts and are loaded together for each model request; missing or blank selected prompts/models fail explicitly. Task text, custom criteria, the unchanged transcript, and server-calculated word limits stay in separate JSON input. Changing Go defaults does not overwrite saved rows. Results record the OCR model in `transcription_model` and the assessment model in `model`; word-limit-only results use the OCR model for both because no assessment call is made.
 
-The app and API share `PUBLIC_BASE_URL`; Docker publishes port `APP_PORT` (8000 by default) on the host loopback interface. `/health/live` checks the process and `/health/ready` checks database readiness. Build the React frontend with `npm run build:server` from `frontend/` before building the Docker image; this places its API-mode assets in `backend/static/`. See the [frontend README](../frontend/README.md) for local development and currently supported controls. The React frontend connects to this API by default.
+The app and API share `PUBLIC_BASE_URL`; Docker publishes port `APP_PORT` (8000 by default) on the host loopback interface. `/health/live` checks the process and `/health/ready` checks database readiness. The root Dockerfile compiles the React frontend in API mode and includes it in the Go image. No separate frontend build is required for Docker. See the [frontend README](../frontend/README.md) for local development and currently supported controls. The React frontend connects to this API by default.
 
 The Go server preserves the application endpoints below; it does not expose the former FastAPI Swagger `/docs` page. Local Go commands read environment variables directly; Docker Compose loads the root `.env` file.
+
+The server and its healthcheck use `LISTEN_ADDR` when set, otherwise `PORT` when provided by a hosting platform, otherwise `:8000`. See [Railway setup](../deploy/railway.md) for the root Docker build, persistent volume, and production variables.
 
 ## Logs
 

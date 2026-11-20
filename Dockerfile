@@ -1,12 +1,19 @@
 # syntax=docker/dockerfile:1
+FROM node:22-alpine AS frontend
+
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --include=dev
+COPY frontend/ ./
+RUN VITE_DATA_MODE=api npm run build
+
 FROM golang:1.27.4-bookworm AS build
 
 WORKDIR /src
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download all
-COPY . .
-RUN mkdir -p static \
-    && CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/examcheck ./cmd/examcheck
+COPY backend/ ./
+RUN CGO_ENABLED=1 go build -trimpath -ldflags="-s -w" -o /out/examcheck ./cmd/examcheck
 
 FROM debian:bookworm-slim
 
@@ -20,9 +27,10 @@ RUN apt-get update \
     && chown -R app:app /data
 
 WORKDIR /app
+ENV DB_PATH=/data/db/examcheck.db \
+    UPLOAD_DIR=/data/uploads
 COPY --from=build /out/examcheck /app/examcheck
-# The build stage creates this directory even when the frontend is not connected yet.
-COPY --from=build /src/static /app/static
+COPY --from=frontend /frontend/dist /app/static
 
 USER 10001:10001
 EXPOSE 8000

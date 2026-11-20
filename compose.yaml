@@ -3,7 +3,7 @@ name: examcheck
 services:
   app:
     build:
-      context: ./backend
+      context: .
     image: examcheck-backend:local
     env_file: .env
     environment:

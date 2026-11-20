@@ -1,0 +1,39 @@
+# Local secrets and repository metadata
+**/.env
+**/.env.*
+**/.git
+**/.openai
+.agents/
+.codex/
+.aws/
+
+# Dependencies, generated assets, and caches
+**/node_modules/
+**/dist/
+**/.sites-runtime/
+**/*.tsbuildinfo
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.cache/
+**/coverage/
+**/.coverage*
+**/htmlcov/
+**/*.py[cod]
+**/*.log
+**/.DS_Store
+backend/static/
+backend/examcheck
+backend/bin/
+**/*.test
+**/coverage.out
+output/
+
+# Runtime data and archived implementation
+backend/data/
+backend/uploads/
+**/*.db
+**/*.db-*
+**/*.sqlite*
+backend/legacy/

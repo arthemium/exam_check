@@ -40,9 +40,11 @@ type Config struct {
 	EnableWorker         bool
 }
 
+const defaultListenAddr = ":8000"
+
 func DefaultConfig() Config {
 	return Config{
-		AppEnv: "development", ListenAddr: ":8000", DBPath: "data/db/examcheck.db",
+		AppEnv: "development", ListenAddr: defaultListenAddr, DBPath: "data/db/examcheck.db",
 		PublicBaseURL: "http://localhost:8000", SessionDays: 7, UploadDir: "data/uploads", StaticDir: "static",
 		MaxUploadBytes: 100 << 20, MaxPageBytes: 10 << 20, MaxPagesPerExam: 10, MaxExamBytes: 20 << 20, MaxRequestBytes: 120 << 20,
 		MaxJobsPerUserPerDay: 50, MaxActiveJobsPerUser: 2, OpenAITimeout: 90 * time.Second,
@@ -50,9 +52,29 @@ func DefaultConfig() Config {
 	}
 }
 
+// ListenAddress resolves the server binding for both startup and health checks.
+func ListenAddress() (string, error) {
+	if address := os.Getenv("LISTEN_ADDR"); address != "" {
+		return address, nil
+	}
+	if value := os.Getenv("PORT"); value != "" {
+		port, err := strconv.Atoi(value)
+		if err != nil || port < 1 || port > 65535 {
+			return "", fmt.Errorf("PORT must be an integer between 1 and 65535")
+		}
+		return ":" + strconv.Itoa(port), nil
+	}
+	return defaultListenAddr, nil
+}
+
 func LoadConfig() (Config, error) {
 	cfg := DefaultConfig()
 	loadStringSettings(&cfg)
+	address, err := ListenAddress()
+	if err != nil {
+		return cfg, err
+	}
+	cfg.ListenAddr = address
 	if err := loadNumberSettings(&cfg); err != nil {
 		return cfg, err
 	}
@@ -72,13 +94,13 @@ func LoadConfig() (Config, error) {
 			return cfg, fmt.Errorf("FRONTEND_ORIGINS must be a JSON array of origins")
 		}
 	}
-	err := cfg.Validate()
+	err = cfg.Validate()
 	return cfg, err
 }
 
 func loadStringSettings(cfg *Config) {
 	settings := map[string]*string{
-		"APP_ENV": &cfg.AppEnv, "LISTEN_ADDR": &cfg.ListenAddr, "DB_PATH": &cfg.DBPath,
+		"APP_ENV": &cfg.AppEnv, "DB_PATH": &cfg.DBPath,
 		"PUBLIC_BASE_URL": &cfg.PublicBaseURL, "LOGIN_USERNAME": &cfg.LoginUsername,
 		"LOGIN_PASSWORD": &cfg.LoginPassword, "UPLOAD_DIR": &cfg.UploadDir,
 		"STATIC_DIR": &cfg.StaticDir, "OPENAI_API_KEY": &cfg.OpenAIKey, "OPENAI_MODEL": &cfg.OpenAIModel,

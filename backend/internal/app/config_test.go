@@ -49,6 +49,44 @@ func TestConfigEnvironmentAndLimits(t *testing.T) {
 	}
 }
 
+func TestConfigListenAddressPrecedence(t *testing.T) {
+	for _, test := range []struct {
+		name, address, port, expected string
+	}{
+		{"default", "", "", ":8000"},
+		{"platform port", "", "49152", ":49152"},
+		{"minimum port", "", "1", ":1"},
+		{"maximum port", "", "65535", ":65535"},
+		{"explicit address", "127.0.0.1:9000", "49152", "127.0.0.1:9000"},
+		{"explicit address ignores unused port", "[::]:9000", "invalid", "[::]:9000"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("LISTEN_ADDR", test.address)
+			t.Setenv("PORT", test.port)
+			cfg, err := LoadConfig()
+			if err != nil || cfg.ListenAddr != test.expected {
+				t.Fatalf("listen address: %q, %v", cfg.ListenAddr, err)
+			}
+			if DefaultConfig().ListenAddr != ":8000" {
+				t.Fatal("default configuration depends on the environment")
+			}
+		})
+	}
+}
+
+func TestConfigRejectsInvalidPlatformPort(t *testing.T) {
+	t.Setenv("LISTEN_ADDR", "")
+	for _, port := range []string{"0", "-1", "65536", "999999999999999999999", "8000.5", "private-token", " 8000 "} {
+		t.Run(port, func(t *testing.T) {
+			t.Setenv("PORT", port)
+			_, err := LoadConfig()
+			if err == nil || err.Error() != "PORT must be an integer between 1 and 65535" {
+				t.Fatalf("unexpected port validation: %v", err)
+			}
+		})
+	}
+}
+
 func TestStorePersistsSchemaAndForeignKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "db", "examcheck.db")
 	store, err := OpenStore(path, "")

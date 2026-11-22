@@ -23,17 +23,21 @@ Supply `OPENAI_API_KEY` before requesting checks. Model selection comes from SQL
 
 OpenAI prompts use two tables: `main_prompts(key, body, model)` holds `transcriber` and `checker`; `prompt_additions(key, body)` holds the 15 check, assessment, task, custom, and word-limit sections. Migration moves existing text unchanged and removes the old `prompt_templates` table. Defaults live in `internal/app/prompt_defaults.go` and are seeded once. Saved prompt and model edits survive restarts and are loaded together for each model request; missing or blank selected prompts/models fail explicitly. Task text, custom criteria, the unchanged transcript, and server-calculated word limits stay in separate JSON input. Changing Go defaults does not overwrite saved rows. Results record the OCR model in `transcription_model` and the assessment model in `model`; word-limit-only results use the OCR model for both because no assessment call is made.
 
-Granular C1 writing references live in `assessment_rubric_steps`, separately from prompts. Schema 5 seeds four ordered steps for `assessment='cae'`: `content`, `communicative_achievement`, `organisation`, and `language`. Each stores a short summary, guidance for all six score bands, and the official document URL, printed/PDF pages, SHA-256 and reference version. These are paraphrases reviewed against the [Cambridge handbook](https://www.cambridgeenglish.org/Images/167804-c1-advanced-handbook.pdf) on 2026-11-21, not the full official descriptors. The seed is in `internal/app/assessment_steps.sql`; migrations preserve saved edits and existing prompts/models. `ListAssessmentSteps` returns only ordered keys/titles; `LoadAssessmentStep` loads one criterion at a time. The checker still uses its current prompt flow; these lookups are ready for the later tool integration.
+The active Cambridge assessment is **B2 First for Schools** (`b2_first_schools`), with editable default word limits of 140–190. Its four ordered subscales—Content, Communicative Achievement, Organisation, and Language—live in `assessment_rubric_steps`. Each row includes a short summary, the supplied image's full band 0–5 descriptors, and image SHA-256 provenance. The seed is `internal/app/assessment_b2_steps.sql`; no PDF URL or page number is inferred.
 
-For example, retrieve only the Organisation step:
+For B2 checks, the backend reads the saved four subscales and adds them to the checker instructions together with `assessment.b2_first_schools`. Editing a saved rubric row affects subsequent B2 checks. General writing checks do not receive the B2 rubric. Missing or incomplete B2 configuration fails explicitly.
 
 ```sql
-SELECT step_order, title, summary, score_guidance, source_url, source_pages, reference_version
+SELECT step_order, title, summary, score_guidance
 FROM assessment_rubric_steps
-WHERE assessment = 'cae' AND step_key = 'organisation';
+WHERE assessment = 'b2_first_schools' AND step_key = 'organisation';
 ```
 
-Application startup owns the schema version. The additive SQL seed can also provision the table for an older running app without changing `PRAGMA user_version`; upgrading the app then completes migration 5. Railway receives the migration when the updated code is deployed.
+Schema 7 removes the C1 prompt addition and rubric rows. Existing C1 exam settings move to B2; the old default 220–260 range changes to 140–190, while custom limits are retained. Historical results keep their scores, wording, and word-limit data, and are marked `assessment='cae'` for an accurate historical label. New results record the assessment actually used. The C1 SQL seed remains only as part of the historical schema-5 migration.
+
+Schema 6 appends the checker evidence threshold once without replacing saved text or models. Selecting a check does not require a finding: acceptable writing can return `findings=[]`, generic advice and preference-only rewrites are omitted, and rubric/custom feedback may be wholly positive. Scores follow the selected descriptors. Mocked tests verify prompt composition and empty-result handling, not live model accuracy.
+
+Application startup owns schema upgrades. Back up SQLite before upgrading; do not manually raise `PRAGMA user_version` for an older running app. A Git push does not update the local database or transfer it to Railway. Railway requires its own persistent volume.
 
 The app and API share `PUBLIC_BASE_URL`; Docker publishes port `APP_PORT` (8000 by default) on the host loopback interface. `/health/live` checks the process and `/health/ready` checks database readiness. The root Dockerfile compiles the React frontend in API mode and includes it in the Go image. No separate frontend build is required for Docker. See the [frontend README](../frontend/README.md) for local development and currently supported controls. The React frontend connects to this API by default.
 
@@ -61,11 +65,11 @@ Mutating requests, including login, require an `Origin` header matching `PUBLIC_
 - `POST /api/folders/{id}/checks` accepts `{ "exam_ids": ["..."], "criteria": { ... }, "request_id": "unique-id" }` and queues all selected exams atomically. The response contains `batch_id` and `exam_ids`. Repeating the request ID returns the existing batch. Optional `criteria_by_exam` provides a full criteria object for every selected exam, allowing separate task-photo URLs. Blank shared task fields preserve individual tasks.
 - Poll exam details for `status`, `batch_id`, `stage`, `progress`, and `result`. All accepted bulk jobs survive browser closure and server restarts.
 
-Supported checks are `grammar`, `spelling`, `punctuation`, `structure`, `format`, `register`, `style`, and `taskCompletion`. Criteria also contain `assessment` (`general` or `cae`), `custom_criteria` (one per line, at most 1200 characters/100 distinct criteria), nullable integer `min_words`/`max_words` (1–10000), `detect_task`, `task_text`, `task_source`, and `task_photo`. Task text is limited to 4000 characters. Unchanged criteria saves preserve results; changing criteria clears stale feedback.
+Supported checks are `grammar`, `spelling`, `punctuation`, `structure`, `format`, `register`, `style`, and `taskCompletion`. Criteria also contain `assessment` (`general` or `b2_first_schools`), `custom_criteria` (one per line, at most 1200 characters/100 distinct criteria), nullable integer `min_words`/`max_words` (1–10000), `detect_task`, `task_text`, `task_source`, and `task_photo`. Task text is limited to 4000 characters. Unchanged criteria saves preserve results; changing criteria clears stale feedback.
 
 Status progresses from `uploaded` to `queued`, `processing`, then `completed` or `failed`. Progress records milestones: queued 0, transcribing 10, assessing 60, finalizing 90, completed 100; it does not predict elapsed time. Manual task instructions take precedence over a separate task photo, then optional extraction from the essay. Extracted instructions are saved separately from the student's answer. Word counts exclude task instructions, titles, and unreadable markers; uncertain handwriting is flagged.
 
-CAE feedback uses Content, Communicative Achievement, Organisation, and Language, with estimated 0–5 scores based on the [Cambridge C1 Advanced handbook](https://www.cambridgeenglish.org/Images/167804-c1-advanced-handbook.pdf). These are model estimates, not official exam marks. Missing tasks prevent task-dependent scores; uncertain handwriting withholds all numerical scores. Results include `task`, `word_count`, `word_limit`, `assessments`, and `custom_assessments` alongside the transcript and issues.
+B2 feedback uses Content, Communicative Achievement, Organisation, and Language, with estimated 0–5 scores based on the supplied B2 First for Schools rubric saved in SQLite. These are model estimates, not official exam marks. Missing tasks prevent task-dependent scores; uncertain handwriting withholds all numerical scores. Results include `task`, `word_count`, `word_limit`, `assessments`, and `custom_assessments` alongside the transcript and issues.
 
 Page URLs require authentication. Result issue offsets are paragraph-local UTF-16 code units, matching JavaScript string indexing. Render transcript and feedback as text, not HTML.
 
@@ -103,7 +107,7 @@ This adds Caddy for HTTPS and forces production mode, secure cookies, and the HT
 
 Named volumes retain SQLite (`sqlitedata`), private photos (`uploads`), and Caddy certificate state. The app runs as UID/GID `10001`; new data volumes inherit that directory ownership from the image. Existing upload volumes must grant UID `10001` access.
 
-SQLite uses WAL mode and must live on local storage on the same server as the app. Use one application instance with its built-in worker. Startup migrates schema versions 1–3 to version 4 transactionally, preserving existing folders, exams, feedback, and saved prompt text. Version 4 separates the two main prompts and their models from prompt additions. Older application versions cannot open a version 4 database; retain a pre-upgrade backup for rollback.
+SQLite uses WAL mode and must live on local storage on the same server as the app. Use one application instance with its built-in worker. Startup migrates older schemas transactionally to version 7, preserving existing folders, exams, feedback, and saved rubric edits. Version 4 separates the two main prompts and their models from prompt additions; version 6 appends the checker evidence rule without replacing saved text. Older application versions cannot open a newer schema; retain a pre-upgrade backup for rollback.
 
 For a consistent simple backup, stop the app, copy the complete SQLite data directory and uploads together, then restart it. Keep backups off-server and verify restoration. Do not copy only a live `.db` file while omitting its WAL. Named volumes are not backups; `docker compose down -v` deletes the current stack's data volumes.
 

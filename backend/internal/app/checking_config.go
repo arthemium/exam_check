@@ -34,5 +34,10 @@ func (s *Server) validateCheckingSetup(ctx context.Context, tx *sql.Tx, criteria
 	if count == 0 || (needsAssessment(criteria) && count != 2) {
 		return unconfigured
 	}
+	if criteria.Assessment == "b2_first_schools" {
+		if _, err := loadB2RubricPrompt(ctx, tx); err != nil {
+			return apiProblem{503, "The B2 First for Schools rubric is missing or incomplete"}
+		}
+	}
 	return nil
 }

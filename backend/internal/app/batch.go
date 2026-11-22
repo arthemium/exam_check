@@ -39,7 +39,7 @@ func parseCriteriaJSON(raw json.RawMessage) (Criteria, error) {
 }
 
 func hasCheckingCriteria(criteria Criteria) bool {
-	return len(criteria.Checks) > 0 || criteria.Assessment == "cae" || strings.TrimSpace(criteria.CustomCriteria) != "" || criteria.MinWords != nil || criteria.MaxWords != nil
+	return len(criteria.Checks) > 0 || criteria.Assessment == "b2_first_schools" || strings.TrimSpace(criteria.CustomCriteria) != "" || criteria.MinWords != nil || criteria.MaxWords != nil
 }
 
 func saveExamCriteria(ctx context.Context, tx *sql.Tx, id string, criteria Criteria, reset bool) error {

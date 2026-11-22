@@ -28,7 +28,7 @@ func TestCheckingExtractsEmbeddedTaskAndUsesAdvancedCriteria(t *testing.T) {
 	seedCheckingPhoto(t, store, config)
 	minimum, maximum := 5, 10
 	criteria := defaultCriteria([]string{"grammar", "format", "taskCompletion"})
-	criteria.DetectTask, criteria.Assessment, criteria.CustomCriteria = true, "cae", "Explain one benefit"
+	criteria.DetectTask, criteria.Assessment, criteria.CustomCriteria = true, "b2_first_schools", "Explain one benefit"
 	criteria.MinWords, criteria.MaxWords = &minimum, &maximum
 	saveCheckingCriteria(t, store, criteria)
 	var input atomic.Value
@@ -46,7 +46,7 @@ func TestCheckingExtractsEmbeddedTaskAndUsesAdvancedCriteria(t *testing.T) {
 		input.Store(string(body["input"]))
 		score := 3
 		feedback := assessmentAnalysis{Findings: []finding{testFinding()}, Assessments: []criterionAssessment{}, CustomAssessments: []customAssessment{{"Explain one benefit", "The answer needs an explained benefit."}}}
-		for _, name := range caeCriteria {
+		for _, name := range b2Criteria {
 			feedback.Assessments = append(feedback.Assessments, criterionAssessment{name, "Supported assessment evidence.", &score})
 		}
 		writeProviderResponse(w, feedback)
@@ -133,10 +133,10 @@ func TestCheckingTaskPhotoIsSeparateAndManualTaskWins(t *testing.T) {
 
 func TestCheckingWithholdsUnsupportedScoresAndTaskFindings(t *testing.T) {
 	criteria := defaultCriteria([]string{"taskCompletion"})
-	criteria.Assessment = "cae"
+	criteria.Assessment = "b2_first_schools"
 	score := 5
 	feedback := assessmentAnalysis{Findings: []finding{{Category: "taskCompletion", Scope: "document", Suggestion: "Add the missing task content.", Explanation: "Unsupported without a task."}}}
-	for _, name := range caeCriteria {
+	for _, name := range b2Criteria {
 		feedback.Assessments = append(feedback.Assessments, criterionAssessment{name, "Provisional feedback.", &score})
 	}
 	paragraphs := []checkedParagraph{canonicalParagraph(testParagraph("Read this.", "clear", 1), "p1")}
@@ -171,10 +171,10 @@ func TestCheckingWithholdsUnsupportedScoresAndTaskFindings(t *testing.T) {
 
 func TestCheckingAssessmentRejectsMissingInventedAndOutOfRangeCriteria(t *testing.T) {
 	criteria := defaultCriteria(nil)
-	criteria.Assessment, criteria.CustomCriteria = "cae", "Explain evidence"
+	criteria.Assessment, criteria.CustomCriteria = "b2_first_schools", "Explain evidence"
 	score := 3
 	feedback := assessmentAnalysis{CustomAssessments: []customAssessment{{"Explain evidence", "Evidence is limited."}}}
-	for _, name := range caeCriteria {
+	for _, name := range b2Criteria {
 		feedback.Assessments = append(feedback.Assessments, criterionAssessment{name, "Evidence-based assessment.", &score})
 	}
 	if err := validateAssessmentFeedback(feedback, criteria); err != nil {

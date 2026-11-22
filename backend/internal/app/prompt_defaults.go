@@ -5,6 +5,19 @@ const (
 	defaultCheckerModel     = "gpt-6.2-sol"
 )
 
+const checkerEvidencePolicy = `Evidence threshold for all checks and assessments:
+Selecting a category does not require a finding. Return findings=[] when no supported
+problem exists; never fill quotas or invent an issue for each category or paragraph.
+Report only identifiable errors, unmet stated requirements, or demonstrable weaknesses
+in clarity, organisation, or suitability. Omit generic advice, personal preferences,
+and rewrites of acceptable wording, including effective simple language and valid variants.
+All requests for suggestions in the check descriptions are conditional on this evidence rule.
+Ground every finding in readable evidence. Before alleging an omission, verify the stated
+requirement and the complete response; uncertain text is not evidence of absence.
+Omit doubtful claims. Required rubric and custom assessments may be wholly positive;
+do not invent weaknesses or withhold a justified top band. Apply the actual descriptors:
+error-free writing alone does not guarantee full marks.`
+
 // Defaults are seeded into SQLite once. Requests use the saved template bodies.
 var defaultPromptTemplates = map[string]string{
 	"transcriber": `Transcribe the student's response from the supplied photos literally.
@@ -57,7 +70,7 @@ scope=paragraph or document, with quote=null and occurrence=null. For document s
 also use paragraph_id=null. Explain each finding briefly and give a replacement or
 practical suggestion. Never generate character offsets or a rewritten transcript.
 Give numerical scores only when the selected assessment explicitly requests them.
-Return only the structured feedback requested by the output schema.`,
+Return only the structured feedback requested by the output schema.` + "\n\n" + checkerEvidencePolicy,
 
 	"checker.task": `Task assignment: use the supplied task as the requirements given to the student.
 If task is empty, omit taskCompletion findings and do not invent the intended reader,
@@ -97,26 +110,19 @@ is informed. Cite concrete omissions or irrelevant content. Without an assignmen
 do not produce taskCompletion findings.`,
 
 	"assessment.general": `Assessment: general writing feedback. Apply the selected checks
-and any supplied custom criteria without assigning numerical scores or a CAE rubric.
+and any supplied custom criteria without assigning numerical scores or a Cambridge rubric.
 If the output schema includes assessments, return an empty assessments array.`,
 
-	"assessment.cae": `Assessment: CAE. Return exactly Content, Communicative Achievement,
+	"assessment.b2_first_schools": `Assessment: Cambridge B2 First for Schools.
+Use the four saved B2 rubric steps supplied with these instructions as the scoring reference.
+Judge language complexity against B2 expectations.
+Return exactly Content, Communicative Achievement,
 Organisation, and Language in that order in assessments. Give concise evidence and
 an estimated integer score 0–5 for each subscale, not an official Cambridge mark.
-Use these paraphrased band anchors independently per subscale:
-Content: 5 addresses the required content relevantly and completely; 3 leaves minor
-gaps while informing the reader about most requirements; 1 has misunderstanding,
-irrelevance or significant gaps; 0 has no relevant response.
-Communicative Achievement: 5 handles complex ideas and purpose flexibly and convincingly
-for the intended reader; 3 uses suitable genre conventions for simple and complex ideas;
-1 conveys mainly simple ideas using recognisable conventions; 0 falls below band 1.
-Organisation: 5 has coherent overall structure with adaptable connections; 3 is coherent
-with varied linking generally effective; 1 has adequate organisation with some linking;
-0 falls below band 1. Language: 5 has precise varied vocabulary and highly controlled
-complex grammar, with only slips; 3 has appropriate lexical range and controlled varied
-grammar with occasional errors that do not hinder understanding; 1 has everyday lexical
-range and some complex grammar, with errors generally allowing understanding; 0 falls
-below band 1. Scores 2 and 4 lie between adjacent anchors. Missing evidence is not zero.
+Apply each subscale independently. Scores 2 and 4 share features of adjacent bands.
+Missing evidence is not zero. Do not invent weaknesses or deduct for every isolated slip;
+the B2 Language band 5 permits occasional errors that do not impede communication.
+Do not invent a fixed paragraph count, automatic word-limit penalty, or overall grade.
 Without a task, Content and Communicative Achievement scores must be null; explain
 what cannot be assessed. If any transcription segment is uncertain or unreadable,
 all scores must be null; explain that transcription review is needed before grading.

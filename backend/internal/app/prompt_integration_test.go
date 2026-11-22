@@ -25,12 +25,12 @@ type capturedPromptRequest struct {
 }
 
 func promptIntegrationFeedback(criteria Criteria) any {
-	if criteria.Assessment != "cae" && criteria.CustomCriteria == "" {
+	if criteria.Assessment != "b2_first_schools" && criteria.CustomCriteria == "" {
 		return analysis{Findings: []finding{}}
 	}
 	feedback := assessmentAnalysis{Findings: []finding{}, Assessments: []criterionAssessment{}, CustomAssessments: []customAssessment{}}
-	if criteria.Assessment == "cae" {
-		for _, name := range caeCriteria {
+	if criteria.Assessment == "b2_first_schools" {
+		for _, name := range b2Criteria {
 			feedback.Assessments = append(feedback.Assessments, criterionAssessment{Criterion: name, Feedback: "Readable evidence supports this assessment."})
 		}
 	}
@@ -111,7 +111,7 @@ func decodeCheckingPromptContent(t *testing.T, request capturedPromptRequest) ch
 }
 
 func TestCheckingSendsSavedTemplatesAndSeparateCriteriaData(t *testing.T) {
-	for _, name := range []string{"general", "general_with_limits", "general_with_custom", "cae_with_limits"} {
+	for _, name := range []string{"general", "general_with_limits", "general_with_custom", "b2_with_limits"} {
 		t.Run(name, func(t *testing.T) {
 			criteria := promptIntegrationCriteria(name)
 			requests := runPromptIntegrationCheck(t, criteria)
@@ -140,8 +140,8 @@ func promptIntegrationCriteria(name string) Criteria {
 		minimum, maximum := 5, 10
 		criteria.MinWords, criteria.MaxWords = &minimum, &maximum
 	}
-	if name == "cae_with_limits" {
-		criteria.Assessment = "cae"
+	if name == "b2_with_limits" {
+		criteria.Assessment = "b2_first_schools"
 	}
 	return criteria
 }
@@ -178,11 +178,11 @@ func assertPromptDataSeparation(t *testing.T, requests []capturedPromptRequest, 
 func assertPromptOptionalBlocks(t *testing.T, instructions string, criteria Criteria) {
 	t.Helper()
 	for key, wanted := range map[string]bool{
-		"assessment.general":  criteria.Assessment == "general",
-		"assessment.cae":      criteria.Assessment == "cae",
-		"checker.custom":      criteria.CustomCriteria != "",
-		"checker.word_limits": criteria.MinWords != nil || criteria.MaxWords != nil,
-		"check.spelling":      false,
+		"assessment.general":          criteria.Assessment == "general",
+		"assessment.b2_first_schools": criteria.Assessment == "b2_first_schools",
+		"checker.custom":              criteria.CustomCriteria != "",
+		"checker.word_limits":         criteria.MinWords != nil || criteria.MaxWords != nil,
+		"check.spelling":              false,
 	} {
 		if strings.Contains(instructions, defaultPromptTemplates[key]) != wanted {
 			t.Errorf("wrong inclusion of %s", key)

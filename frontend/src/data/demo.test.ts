@@ -27,11 +27,24 @@ describe('persistent demo workspace', () => {
     const repository = createDemoRepository();
     const exam = (await repository.load()).exams[0];
     expect(exam).toMatchObject({ title: 'Essay', studentName: 'Anna', status: 'completed', source: 'upload', photos: [{ url: jpeg }] });
-    expect(exam.criteria).toMatchObject({ checks: ['grammar', 'style'], assessment: 'cae', taskText: 'Compare two viewpoints.', taskSource: 'manual', minWords: '220', maxWords: '260' });
+    expect(exam.criteria).toMatchObject({ checks: ['grammar', 'style'], assessment: 'b2_first_schools', taskText: 'Compare two viewpoints.', taskSource: 'manual', minWords: '140', maxWords: '190' });
     expect(exam.result).toBeUndefined();
     await repository.deleteFolder('f1');
     expect(await createDemoRepository().load()).toEqual({ folders: [], exams: [] });
     expect(localStorage.getItem(legacyKey)).not.toBeNull();
+  });
+
+  it('preserves previous C1 results and custom word limits when migrating to B2', async () => {
+    const { exams, folder } = await samples();
+    const savedResult = { paragraphs: [{ id: 'p', pageNumber: 1, text: 'Original response.' }], issues: [], assessments: [{ criterion: 'Language', score: 3, feedback: 'Saved C1 feedback.' }] };
+    localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify({ folders: [folder], exams: [
+      { ...exams[0], status: 'completed', criteria: { ...defaultCriteria(), assessment: 'cae', minWords: '200', maxWords: '300' }, result: savedResult },
+    ] }));
+    const migrated = (await createDemoRepository().load()).exams[0];
+    expect(migrated.criteria).toMatchObject({ assessment: 'b2_first_schools', minWords: '200', maxWords: '300' });
+    expect(migrated.result).toEqual({ ...savedResult, assessment: 'cae' });
+    await createDemoRepository().saveExam(migrated.id, { title: 'Renamed' });
+    expect((await createDemoRepository().load()).exams[0].result).toEqual({ ...savedResult, assessment: 'cae' });
   });
 
   it('checks only selected exams, preserves individual tasks, and resumes progress after reload', async () => {

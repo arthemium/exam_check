@@ -1,4 +1,4 @@
-import { basicChecks, criteriaError, defaultCriteria, isChecking } from '../criteria';
+import { basicChecks, criteriaError, defaultCriteria, isChecking, normalizeAssessment } from '../criteria';
 import type { Check, Criteria, Exam, ExamChanges, ExamResult, ExamStatus, Repository, Session, Workspace } from '../types';
 import { maxPhotoSourceBytes, validatePhotoFile } from './media';
 
@@ -7,7 +7,7 @@ export class ApiError extends Error {
 }
 
 interface ApiCriteria {
-  checks: Check[]; assessment: Criteria['assessment']; custom_criteria: string;
+  checks: Check[]; assessment: Criteria['assessment'] | 'cae'; custom_criteria: string;
   min_words: number | null; max_words: number | null; detect_task: boolean;
   task_text: string; task_source: Criteria['taskSource']; task_photo: string;
 }
@@ -17,6 +17,7 @@ interface ApiExam {
   pages?: { id: string; page_number: number; url: string }[]; result?: ApiResult | null; error?: string | null;
 }
 interface ApiResult {
+  assessment?: ExamResult['assessment'];
   paragraphs: { id: string; text: string; page_number: number; uncertain_ranges?: { start: number; end: number; certainty: string }[] }[];
   issues: { id: string; category: Check; scope: 'span' | 'paragraph' | 'document'; paragraph_id: string | null; quote?: string | null; start?: number | null; end?: number | null; suggestion: string; explanation: string }[];
   needs_transcription_review?: boolean; validation_warnings?: string[];
@@ -36,6 +37,7 @@ interface UploadedTask {
 export function normalizeApiResult(result?: ApiResult | null): ExamResult | undefined {
   if (!result) return undefined;
   return {
+    assessment: result.assessment,
     paragraphs: result.paragraphs.map(paragraph => ({ id: paragraph.id, text: paragraph.text, pageNumber: paragraph.page_number, uncertainRanges: paragraph.uncertain_ranges })),
     issues: result.issues.map(issue => ({ id: issue.id, category: issue.category, scope: issue.scope, paragraphId: issue.paragraph_id, quote: issue.quote, start: issue.start, end: issue.end, suggestion: issue.suggestion, explanation: issue.explanation })),
     needsTranscriptionReview: result.needs_transcription_review, warnings: result.validation_warnings,
@@ -48,8 +50,8 @@ function readCriteria(input: ApiExam): Criteria {
   const value = input.criteria;
   if (!value) return { ...defaultCriteria(), checks: input.checks, detectTask: false };
   return {
-    checks: value.checks, assessment: value.assessment, customCriteria: value.custom_criteria,
-    minWords: value.min_words == null ? '' : String(value.min_words), maxWords: value.max_words == null ? '' : String(value.max_words),
+    checks: value.checks, customCriteria: value.custom_criteria,
+    ...normalizeAssessment(value.assessment, value.min_words == null ? '' : String(value.min_words), value.max_words == null ? '' : String(value.max_words)),
     detectTask: value.detect_task, taskText: value.task_text, taskSource: value.task_source, taskPhoto: value.task_photo || undefined,
   };
 }
@@ -63,12 +65,14 @@ function writeCriteria(value: Criteria): ApiCriteria {
 }
 
 function mapExam(input: ApiExam): Exam {
+  const result = normalizeApiResult(input.result);
+  if (result && !result.assessment && input.criteria?.assessment === 'cae') result.assessment = 'cae';
   return {
     id: input.id, folderId: input.folder_id, title: input.title, studentName: input.student_name,
     status: input.status, criteria: readCriteria(input), source: 'upload', batchId: input.batch_id || undefined,
     progress: input.status === 'uploaded' ? undefined : input.progress, stage: input.stage,
     photos: (input.pages ?? []).map(page => ({ id: page.id, pageNumber: page.page_number, url: page.url, fileName: `Page ${page.page_number}` })),
-    result: normalizeApiResult(input.result), error: input.error ?? undefined,
+    result, error: input.error ?? undefined,
   };
 }
 

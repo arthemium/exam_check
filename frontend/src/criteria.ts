@@ -13,10 +13,19 @@ export const checkOptions: { value: Check; label: string; description: string }[
 export const basicChecks: Check[] = ['grammar', 'spelling', 'punctuation', 'structure'];
 export const defaultCriteria = (): Criteria => ({ checks: [...basicChecks], assessment: 'general', customCriteria: '', minWords: '', maxWords: '', detectTask: true, taskText: '', taskSource: '' });
 export const isChecking = (status: string) => status === 'queued' || status === 'processing';
+
+export function normalizeAssessment(assessment: unknown, minWords: string, maxWords: string): Pick<Criteria, 'assessment' | 'minWords' | 'maxWords'> {
+  const legacyDefaults = assessment === 'cae' && minWords === '220' && maxWords === '260';
+  return {
+    assessment: assessment === 'cae' || assessment === 'b2_first_schools' ? 'b2_first_schools' : 'general',
+    minWords: legacyDefaults ? '140' : minWords, maxWords: legacyDefaults ? '190' : maxWords,
+  };
+}
+
 export function criteriaError(criteria: Criteria): string {
   const limits = [criteria.minWords, criteria.maxWords];
   if (limits.some(value => value !== '' && (!/^[1-9]\d*$/.test(value) || Number(value) > 10000))) return 'Use whole numbers from 1 to 10,000, or leave the limits blank.';
   if (criteria.minWords && criteria.maxWords && Number(criteria.minWords) > Number(criteria.maxWords)) return 'Maximum words must be at least the minimum.';
-  if (!criteria.checks.length && criteria.assessment !== 'cae' && !criteria.customCriteria.trim() && !criteria.minWords && !criteria.maxWords) return 'Choose at least one criterion.';
+  if (!criteria.checks.length && criteria.assessment !== 'b2_first_schools' && !criteria.customCriteria.trim() && !criteria.minWords && !criteria.maxWords) return 'Choose at least one criterion.';
   return '';
 }

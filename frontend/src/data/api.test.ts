@@ -4,11 +4,12 @@ import type { Check, Criteria, ExamStatus } from '../types';
 import { createApiRepository, normalizeApiResult } from './api';
 
 const result = {
+  assessment: 'b2_first_schools' as const,
   paragraphs: [{ id: 'p1', page_number: 1, text: '🙂 She go home.', uncertain_ranges: [{ start: 3, end: 6, certainty: 'uncertain' }] }],
   issues: [{ id: 'i1', category: 'grammar' as const, scope: 'span' as const, paragraph_id: 'p1', quote: 'go', start: 7, end: 9, suggestion: 'goes', explanation: 'Use the singular verb.' }],
   needs_transcription_review: true, validation_warnings: ['Check one uncertain word.'],
   task: { text: 'Discuss daily routines.', source: 'essay' as const }, word_count: 3,
-  word_limit: { minimum: 220, maximum: 260, status: 'below' as const },
+  word_limit: { minimum: 140, maximum: 190, status: 'below' as const },
   assessments: [{ criterion: 'Content', feedback: 'Not enough readable evidence.', score: null }],
   custom_assessments: [{ criterion: 'Use examples', feedback: 'Add a relevant example.' }],
 };
@@ -113,16 +114,28 @@ describe('Go API repository', () => {
 
   it('maps real criteria, server progress, task, assessments, and paragraph-local UTF-16 offsets', async () => {
     const backend = server(1);
-    Object.assign(backend.exams[0], { status: 'completed', result, progress: 100, stage: 'completed', batch_id: 'batch-1', criteria: apiCriteria({ ...defaultCriteria(), assessment: 'cae', minWords: '220', maxWords: '260' }) });
+    Object.assign(backend.exams[0], { status: 'completed', result, progress: 100, stage: 'completed', batch_id: 'batch-1', criteria: apiCriteria({ ...defaultCriteria(), assessment: 'b2_first_schools', minWords: '140', maxWords: '190' }) });
     const exam = (await createApiRepository({ fetch: backend.fetch }).load()).exams[0];
-    expect(exam.criteria).toMatchObject({ assessment: 'cae', minWords: '220', detectTask: true });
+    expect(exam.criteria).toMatchObject({ assessment: 'b2_first_schools', minWords: '140', detectTask: true });
     expect(exam).toMatchObject({ progress: 100, stage: 'completed', batchId: 'batch-1' });
     expect(exam.photos[0].url).toBe('/api/exams/e1/pages/1');
     const issue = exam.result!.issues[0];
     expect(exam.result!.paragraphs[0].text.slice(issue.start!, issue.end!)).toBe('go');
     expect(exam.result).toEqual(normalizeApiResult(result));
-    expect(exam.result).toMatchObject({ task: result.task, wordCount: 3, assessments: result.assessments, customAssessments: result.custom_assessments });
+    expect(exam.result).toMatchObject({ assessment: 'b2_first_schools', task: result.task, wordCount: 3, assessments: result.assessments, customAssessments: result.custom_assessments });
     expect(backend.fetch.mock.calls.every(([, init]) => init?.credentials === 'include')).toBe(true);
+  });
+
+  it('keeps archived C1 scores identified while loading B2 criteria for the next check', async () => {
+    const backend = server(1);
+    Object.assign(backend.exams[0], { status: 'completed', result: { ...result, assessment: undefined },
+      criteria: { ...apiCriteria(), assessment: 'cae', min_words: 220, max_words: 260 } });
+    const repository = createApiRepository({ fetch: backend.fetch });
+    const exam = (await repository.load()).exams[0];
+    expect(exam.criteria).toMatchObject({ assessment: 'b2_first_schools', minWords: '140', maxWords: '190' });
+    expect(exam.result).toMatchObject({ assessment: 'cae', assessments: result.assessments });
+    await repository.checkExams([exam.id], exam.criteria);
+    expect(JSON.parse(String(backend.posts()[0][1]?.body)).criteria).toMatchObject({ assessment: 'b2_first_schools', min_words: 140, max_words: 190 });
   });
 
   it('loads every page instead of omitting exams beyond the page limit', async () => {
@@ -253,9 +266,9 @@ describe('Go API repository', () => {
     const backend = server(1);
     const repository = createApiRepository({ fetch: backend.fetch });
     expect(repository.capabilities).toEqual({ advancedCriteria: true, delete: true, taskPhoto: true, demo: false });
-    await repository.saveExam('e1', { title: ' New title ', criteria: { ...defaultCriteria(), assessment: 'cae', minWords: '220', maxWords: '260', taskText: 'Discuss education.', taskSource: 'manual' } });
+    await repository.saveExam('e1', { title: ' New title ', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools', minWords: '140', maxWords: '190', taskText: 'Discuss education.', taskSource: 'manual' } });
     const saved = backend.fetch.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
-    expect(JSON.parse(String(saved[1]?.body))).toMatchObject({ title: 'New title', criteria: { assessment: 'cae', min_words: 220, max_words: 260, task_text: 'Discuss education.' } });
+    expect(JSON.parse(String(saved[1]?.body))).toMatchObject({ title: 'New title', criteria: { assessment: 'b2_first_schools', min_words: 140, max_words: 190, task_text: 'Discuss education.' } });
     await repository.deleteExam('e1');
     await repository.deleteFolder('f1');
     expect(backend.fetch.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([url]) => url)).toEqual(['/api/exams/e1', '/api/folders/f1']);

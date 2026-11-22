@@ -58,6 +58,9 @@ func checkingTemplateKeys(criteria Criteria) []string {
 		keys = append(keys, "check."+check)
 	}
 	keys = append(keys, "assessment."+criteria.Assessment)
+	if criteria.Assessment == "b2_first_schools" {
+		keys = append(keys, "rubric.b2_first_schools")
+	}
 	if len(customCriteriaLines(criteria.CustomCriteria)) > 0 {
 		keys = append(keys, "checker.custom")
 	}

@@ -15,20 +15,32 @@ function exam(overrides: Partial<Exam> = {}): Exam {
 }
 
 describe('CriteriaScreen', () => {
-  it('uses editable CAE defaults, keeps teacher limits, and saves the selected exam identities', async () => {
+  it('uses editable B2 defaults, keeps teacher limits, and saves the selected exam identities', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<CriteriaScreen exams={[exam()]} capabilities={demo} busy={false} onSave={onSave} onCancel={vi.fn()} />);
-    await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'cae');
-    expect(screen.getByLabelText('Minimum words')).toHaveValue('220');
-    expect(screen.getByLabelText('Maximum words')).toHaveValue('260');
+    expect(screen.getByRole('option', { name: 'Cambridge B2 First for Schools' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /C1|CAE/ })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'b2_first_schools');
+    expect(screen.getByLabelText('Minimum words')).toHaveValue('140');
+    expect(screen.getByLabelText('Maximum words')).toHaveValue('190');
     await user.clear(screen.getByLabelText('Maximum words'));
     await user.type(screen.getByLabelText('Maximum words'), '300');
     await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'general');
-    await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'cae');
+    await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'b2_first_schools');
     expect(screen.getByLabelText('Maximum words')).toHaveValue('300');
     await user.click(screen.getByRole('button', { name: 'Check exam' }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ assessment: 'cae', minWords: '220', maxWords: '300' }), true, { title: 'Essay', studentName: 'Anna' });
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ assessment: 'b2_first_schools', minWords: '140', maxWords: '300' }), true, { title: 'Essay', studentName: 'Anna' });
+  });
+
+  it('allows B2 assessment without individual correction checks', async () => {
+    const user = userEvent.setup();
+    render(<CriteriaScreen exams={[exam({ criteria: { ...defaultCriteria(), checks: [] } })]} capabilities={demo} busy={false} onSave={vi.fn()} onCancel={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Check exam' })).toBeDisabled();
+    await user.selectOptions(screen.getByLabelText('Assessment criteria'), 'b2_first_schools');
+    await user.clear(screen.getByLabelText('Minimum words'));
+    await user.clear(screen.getByLabelText('Maximum words'));
+    expect(screen.getByRole('button', { name: 'Check exam' })).toBeEnabled();
   });
 
   it('keeps bulk task blank and draft values stable across polling object changes', async () => {
@@ -243,10 +255,10 @@ describe('ReviewScreen and transcript ranges', () => {
 
   it('shows extracted task instructions, word counts, and assessment-only results in essay feedback', async () => {
     const user = userEvent.setup();
-    const value = exam({ status: 'completed', source: 'upload', criteria: { ...defaultCriteria(), assessment: 'cae' }, result: {
+    const value = exam({ status: 'completed', source: 'upload', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' }, result: {
       paragraphs: [{ id: 'p', pageNumber: 1, text: 'Student text with [unreadable] words.' }], issues: [], needsTranscriptionReview: true,
       task: { text: 'Discuss the benefits of learning languages.', source: 'photo' }, wordCount: 5,
-      wordLimit: { minimum: 220, maximum: 260, status: 'below' },
+      wordLimit: { minimum: 140, maximum: 190, status: 'below' },
       assessments: [{ criterion: 'Content', feedback: 'The unclear passage prevents a reliable band.', score: null }, { criterion: 'Organisation', feedback: 'Ideas follow a logical order.', score: 3 }],
       customAssessments: [{ criterion: 'Use examples', feedback: 'Add a concrete example to support the argument.' }],
     } });
@@ -254,18 +266,28 @@ describe('ReviewScreen and transcript ranges', () => {
     expect(screen.getByRole('region', { name: 'Task instructions used' })).toHaveTextContent('Discuss the benefits of learning languages.');
     expect(screen.getByText('From task photo')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Word count' })).toHaveTextContent('5 words');
-    expect(screen.getByText('Below the 220-word minimum')).toBeInTheDocument();
-    const assessment = screen.getByRole('region', { name: 'CAE assessment' });
+    expect(screen.getByText('Below the 140-word minimum')).toBeInTheDocument();
+    const assessment = screen.getByRole('region', { name: 'B2 assessment' });
     expect(assessment).toHaveTextContent('not an official Cambridge score');
     expect(assessment).toHaveTextContent('Not assessable');
     expect(assessment).toHaveTextContent('3 / 5');
     expect(screen.getByRole('region', { name: 'Custom criteria assessment' })).toHaveTextContent('Add a concrete example');
     expect(screen.getByRole('tab', { name: /Essay feedback/ })).toHaveAttribute('aria-selected', 'true');
     await user.click(screen.getByRole('tab', { name: /Text corrections/ }));
-    expect(screen.queryByRole('region', { name: 'CAE assessment' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Custom criteria assessment' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: /Essay feedback/ }));
-    expect(screen.getByRole('region', { name: 'CAE assessment' })).toHaveTextContent('3 / 5');
+    expect(screen.getByRole('region', { name: 'B2 assessment' })).toHaveTextContent('3 / 5');
+  });
+
+  it('labels saved C1 scores as previous results instead of relabeling them B2', () => {
+    const value = exam({ status: 'completed', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' }, result: {
+      assessment: 'cae', paragraphs: [{ id: 'p', pageNumber: 1, text: 'Saved response.' }], issues: [],
+      assessments: [{ criterion: 'Language', feedback: 'Saved C1 evidence.', score: 3 }],
+    } });
+    render(<ReviewScreen exam={value} exams={[value]} capabilities={api} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByRole('region', { name: 'Previous C1 assessment' })).toHaveTextContent('3 / 5');
+    expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
   });
 
   it('shows safe text, uncertainty, feedback selection, and counts only response text', async () => {

@@ -13,7 +13,7 @@ import (
 
 func TestAssessmentStepsSeedAndRetrieveIndividually(t *testing.T) {
 	store, _ := workerTestStore(t)
-	steps, err := store.ListAssessmentSteps(t.Context(), "cae")
+	steps, err := store.ListAssessmentSteps(t.Context(), "b2_first_schools")
 	want := []AssessmentStepInfo{
 		{"content", 1, "Content"}, {"communicative_achievement", 2, "Communicative Achievement"},
 		{"organisation", 3, "Organisation"}, {"language", 4, "Language"},
@@ -26,8 +26,8 @@ func TestAssessmentStepsSeedAndRetrieveIndividually(t *testing.T) {
 		t.Fatalf("manifest included full rubric bodies: %s %v", manifest, err)
 	}
 	for _, info := range steps {
-		step, err := store.LoadAssessmentStep(t.Context(), "cae", info.StepKey)
-		if err != nil || step.AssessmentStepInfo != info || step.Assessment != "cae" {
+		step, err := store.LoadAssessmentStep(t.Context(), "b2_first_schools", info.StepKey)
+		if err != nil || step.AssessmentStepInfo != info || step.Assessment != "b2_first_schools" {
 			t.Fatalf("incorrect individual step: %+v %v", step, err)
 		}
 		for band := 0; band <= 5; band++ {
@@ -36,7 +36,7 @@ func TestAssessmentStepsSeedAndRetrieveIndividually(t *testing.T) {
 			}
 		}
 		hash, err := hex.DecodeString(step.SourceSHA256)
-		if err != nil || len(hash) != 32 || !strings.HasPrefix(step.SourceURL, "https://www.cambridgeenglish.org/") {
+		if err != nil || len(hash) != 32 || !strings.HasPrefix(step.SourceURL, "attachment:sha256:") {
 			t.Fatalf("missing source provenance: %+v", step)
 		}
 	}
@@ -46,11 +46,11 @@ func TestAssessmentStepsUseExactParameterizedLookups(t *testing.T) {
 	store, _ := workerTestStore(t)
 	_, err := store.DB.Exec(`INSERT INTO assessment_rubric_steps
  SELECT 'other',step_key,step_order,title,'Other exam rules',score_guidance,
- source_url,source_pages,source_sha256,reference_version FROM assessment_rubric_steps WHERE assessment='cae'`)
+ source_url,source_pages,source_sha256,reference_version FROM assessment_rubric_steps WHERE assessment='b2_first_schools'`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, assessment := range []string{"cae", "other"} {
+	for _, assessment := range []string{"b2_first_schools", "other"} {
 		step, err := store.LoadAssessmentStep(t.Context(), assessment, "content")
 		if err != nil || step.Assessment != assessment || (step.Summary == "Other exam rules") != (assessment == "other") {
 			t.Fatalf("lookup crossed assessment boundaries: %+v %v", step, err)
@@ -58,7 +58,7 @@ func TestAssessmentStepsUseExactParameterizedLookups(t *testing.T) {
 	}
 	_, err = store.ListAssessmentSteps(t.Context(), "private-value' OR 1=1 --")
 	assertAssessmentStepError(t, err, false)
-	_, err = store.LoadAssessmentStep(t.Context(), "cae", "private-value' OR 1=1 --")
+	_, err = store.LoadAssessmentStep(t.Context(), "b2_first_schools", "private-value' OR 1=1 --")
 	assertAssessmentStepError(t, err, false)
 }
 
@@ -85,16 +85,16 @@ func TestAssessmentMigrationPreservesExistingData(t *testing.T) {
 			path, db := versionFourAssessmentStore(t)
 			seedWorkerExam(t, &Store{DB: db}, "exam")
 			_, err := db.Exec(`UPDATE main_prompts SET body='Saved checker',model='saved-checker-model' WHERE key='checker';
- UPDATE prompt_additions SET body='Saved addition' WHERE key='assessment.cae';
- UPDATE exams SET status='completed',criteria='{"assessment":"cae"}',result='{"saved":true}' WHERE id='exam';`)
+ UPDATE prompt_additions SET body='Saved addition' WHERE key='assessment.b2_first_schools';
+ UPDATE exams SET status='completed',criteria='{"assessment":"b2_first_schools"}',result='{"saved":true}' WHERE id='exam';`)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if provisioned {
-				if _, err := db.Exec(assessmentStepsSQL); err != nil {
+				if _, err := db.Exec(assessmentStepsSQL + assessmentB2StepsSQL); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := db.Exec("UPDATE assessment_rubric_steps SET summary='Saved summary' WHERE assessment='cae' AND step_key='content'"); err != nil {
+				if _, err := db.Exec("UPDATE assessment_rubric_steps SET summary='Saved summary' WHERE assessment='b2_first_schools' AND step_key='content'"); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -105,15 +105,15 @@ func TestAssessmentMigrationPreservesExistingData(t *testing.T) {
 			}
 			defer store.Close()
 			prompt, err := store.loadPrompt(t.Context(), "checker")
-			if err != nil || prompt.Model != "saved-checker-model" || prompt.Templates["checker"] != "Saved checker" || prompt.Templates["assessment.cae"] != "Saved addition" {
+			if err != nil || prompt.Model != "saved-checker-model" || prompt.Templates["checker"] != "Saved checker\n\n"+checkerEvidencePolicy || prompt.Templates["assessment.b2_first_schools"] != "Saved addition" {
 				t.Fatalf("migration altered saved prompts: %+v %v", prompt, err)
 			}
 			var status, criteria, result string
 			err = store.DB.QueryRow("SELECT status,criteria,result FROM exams WHERE id='exam'").Scan(&status, &criteria, &result)
-			if err != nil || status != "completed" || criteria != `{"assessment":"cae"}` || result != `{"saved":true}` {
+			if err != nil || status != "completed" || criteria != `{"assessment":"b2_first_schools"}` || result != `{"saved":true}` {
 				t.Fatalf("migration altered saved exam: %s %s %s %v", status, criteria, result, err)
 			}
-			step, err := store.LoadAssessmentStep(t.Context(), "cae", "content")
+			step, err := store.LoadAssessmentStep(t.Context(), "b2_first_schools", "content")
 			if err != nil || (provisioned && step.Summary != "Saved summary") {
 				t.Fatalf("migration altered saved reference: %+v %v", step, err)
 			}
@@ -127,7 +127,7 @@ func TestAssessmentMigrationPreservesExistingData(t *testing.T) {
 
 func TestAssessmentStepsPreserveEditsAcrossReopen(t *testing.T) {
 	store, config := workerTestStore(t)
-	if _, err := store.DB.Exec("UPDATE assessment_rubric_steps SET summary='Reviewed summary' WHERE assessment='cae' AND step_key='language'"); err != nil {
+	if _, err := store.DB.Exec("UPDATE assessment_rubric_steps SET summary='Reviewed summary' WHERE assessment='b2_first_schools' AND step_key='language'"); err != nil {
 		t.Fatal(err)
 	}
 	store.Close()
@@ -136,7 +136,7 @@ func TestAssessmentStepsPreserveEditsAcrossReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	step, err := reopened.LoadAssessmentStep(t.Context(), "cae", "language")
+	step, err := reopened.LoadAssessmentStep(t.Context(), "b2_first_schools", "language")
 	if err != nil || step.Summary != "Reviewed summary" {
 		t.Fatalf("reopen overwrote saved reference: %+v %v", step, err)
 	}
@@ -167,19 +167,19 @@ func TestAssessmentMigrationRollsBackSeedConflict(t *testing.T) {
 
 func TestAssessmentStepErrorsAreSafeAndClassified(t *testing.T) {
 	store, _ := workerTestStore(t)
-	_, err := store.LoadAssessmentStep(t.Context(), "cae", "private-missing-step")
+	_, err := store.LoadAssessmentStep(t.Context(), "b2_first_schools", "private-missing-step")
 	assertAssessmentStepError(t, err, false)
 	if _, err := store.DB.Exec(`PRAGMA ignore_check_constraints=ON;
- UPDATE assessment_rubric_steps SET summary='   ' WHERE assessment='cae' AND step_key='content';
+ UPDATE assessment_rubric_steps SET summary='   ' WHERE assessment='b2_first_schools' AND step_key='content';
  PRAGMA ignore_check_constraints=OFF;`); err != nil {
 		t.Fatal(err)
 	}
-	_, err = store.LoadAssessmentStep(t.Context(), "cae", "content")
+	_, err = store.LoadAssessmentStep(t.Context(), "b2_first_schools", "content")
 	assertAssessmentStepError(t, err, false)
 	store.Close()
-	_, err = store.LoadAssessmentStep(t.Context(), "cae", "language")
+	_, err = store.LoadAssessmentStep(t.Context(), "b2_first_schools", "language")
 	assertAssessmentStepError(t, err, true)
-	_, err = store.ListAssessmentSteps(t.Context(), "cae")
+	_, err = store.ListAssessmentSteps(t.Context(), "b2_first_schools")
 	assertAssessmentStepError(t, err, true)
 }
 

@@ -64,6 +64,7 @@ type checkedIssue struct {
 
 type checkResult struct {
 	SchemaVersion            int                   `json:"schema_version"`
+	Assessment               string                `json:"assessment,omitempty"`
 	Model                    string                `json:"model"`
 	TranscriptionModel       string                `json:"transcription_model,omitempty"`
 	TranscriptVersion        string                `json:"transcript_version"`

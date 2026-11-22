@@ -128,8 +128,10 @@ function Feedback({ exam, category, tab, selectedId, onSelect, onFilter, onTab, 
 
 function AssessmentFeedback({ exam }: { exam: Exam }) {
   const result = exam.result;
+  const assessment = result?.assessment ?? exam.criteria.assessment;
+  const assessmentTitle = assessment === 'cae' ? 'Previous C1 assessment' : assessment === 'b2_first_schools' ? 'B2 assessment' : 'Writing assessment';
   return <>
-    {!!result?.assessments?.length && <section className="assessment-feedback" aria-label="CAE assessment"><h3>CAE assessment</h3><p className="helper">Estimated bands for teacher review, not an official Cambridge score.</p><dl>{result.assessments.map(item => <div key={item.criterion}><dt>{item.criterion}<span className="tag">{item.score === null ? 'Not assessable' : `${item.score} / 5`}</span></dt><dd>{item.feedback}</dd></div>)}</dl></section>}
+    {!!result?.assessments?.length && <section className="assessment-feedback" aria-label={assessmentTitle}><h3>{assessmentTitle}</h3><p className="helper">Estimated bands for teacher review, not an official Cambridge score.</p><dl>{result.assessments.map(item => <div key={item.criterion}><dt>{item.criterion}<span className="tag">{item.score === null ? 'Not assessable' : `${item.score} / 5`}</span></dt><dd>{item.feedback}</dd></div>)}</dl></section>}
     {!!result?.customAssessments?.length && <section className="assessment-feedback" aria-label="Custom criteria assessment"><h3>Custom criteria</h3><dl>{result.customAssessments.map((item, index) => <div key={index}><dt>{item.criterion}</dt><dd>{item.feedback}</dd></div>)}</dl></section>}
   </>;
 }
@@ -145,10 +147,10 @@ function resultWordLimit(exam: Exam, count: number): string {
 
 function CriteriaSummary({ exam, demo }: { exam: Exam; demo: boolean }) {
   const { criteria } = exam;
-  const previewUnavailable = demo && (criteria.assessment === 'cae' || !!criteria.customCriteria.trim() || criteria.checks.some(check => !['grammar', 'spelling', 'punctuation', 'structure'].includes(check)));
-  if (criteria.assessment !== 'cae' && !criteria.customCriteria.trim() && !previewUnavailable) return null;
-  return <section className="panel criterion-summary" aria-label="Selected assessment criteria"><div className="panel-header"><h2>{criteria.assessment === 'cae' ? 'Cambridge C1 Advanced (CAE) criteria' : 'Assessment criteria'}</h2></div><div className="panel-body">
-    {criteria.assessment === 'cae' && <p>Content · Communicative Achievement · Organisation · Language</p>}
+  const previewUnavailable = demo && (criteria.assessment === 'b2_first_schools' || !!criteria.customCriteria.trim() || criteria.checks.some(check => !['grammar', 'spelling', 'punctuation', 'structure'].includes(check)));
+  if (criteria.assessment !== 'b2_first_schools' && !criteria.customCriteria.trim() && !previewUnavailable) return null;
+  return <section className="panel criterion-summary" aria-label="Selected assessment criteria"><div className="panel-header"><h2>{criteria.assessment === 'b2_first_schools' ? 'Cambridge B2 First for Schools criteria' : 'Assessment criteria'}</h2></div><div className="panel-body">
+    {criteria.assessment === 'b2_first_schools' && <p>Content · Communicative Achievement · Organisation · Language</p>}
     {criteria.customCriteria.trim() && <><h3>Custom criteria</h3><ul>{criteria.customCriteria.split('\n').filter(line => line.trim()).map((line, index) => <li key={index}>{line}</li>)}</ul></>}
     {previewUnavailable && <p className="helper">These criteria are saved. This preview does not generate an assessment or score for them.</p>}
   </div></section>;

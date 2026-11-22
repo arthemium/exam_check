@@ -1,5 +1,5 @@
-import { checkOptions, defaultCriteria } from '../criteria';
-import type { Check, Criteria, Exam, Workspace } from '../types';
+import { checkOptions, defaultCriteria, normalizeAssessment } from '../criteria';
+import type { Check, Criteria, Exam, ExamResult, Workspace } from '../types';
 import { samplePhoto, sampleResult } from './sample';
 
 type RecordValue = Record<string, unknown>;
@@ -12,12 +12,16 @@ export function normalizeCriteria(value: unknown): Criteria {
   return {
     ...defaultCriteria(),
     checks: Array.isArray(input.checks) ? [...new Set(input.checks.filter((check): check is Check => validChecks.has(check as Check)))] : defaultCriteria().checks,
-    assessment: input.assessment === 'cae' ? 'cae' : 'general',
-    customCriteria: text(input.customCriteria, 1200), minWords: text(input.minWords, 5), maxWords: text(input.maxWords, 5),
+    ...normalizeAssessment(input.assessment, text(input.minWords, 5), text(input.maxWords, 5)),
+    customCriteria: text(input.customCriteria, 1200),
     detectTask: input.detectTask !== false, taskText: text(input.taskText, 4000),
     taskSource: ['essay', 'photo', 'manual'].includes(String(input.taskSource)) ? input.taskSource as Criteria['taskSource'] : '',
     taskPhoto: typeof input.taskPhoto === 'string' && input.taskPhoto.startsWith('data:image/') ? input.taskPhoto : undefined,
   };
+}
+
+function preserveResultAssessment(result: ExamResult | undefined, assessment: unknown): ExamResult | undefined {
+  return result && !result.assessment && assessment === 'cae' ? { ...result, assessment: 'cae' } : result;
 }
 
 function legacyExam(value: unknown, folderIds: Set<string>): Exam | null {
@@ -33,7 +37,7 @@ function legacyExam(value: unknown, folderIds: Set<string>): Exam | null {
     criteria, status: completed ? 'completed' : startedAt ? 'queued' : 'uploaded', demoStartedAt: startedAt,
     batchId: text(item.batchId), progress: completed ? 100 : undefined,
     photos: photo ? [{ id: crypto.randomUUID(), url: photo, fileName: text(item.fileName) || 'Exam photo', pageNumber: 1 }] : source === 'sample' ? [samplePhoto(text(item.studentName) || 'Student')] : [],
-    result: completed && source === 'sample' ? sampleResult(criteria.checks) : undefined,
+    result: completed && source === 'sample' ? preserveResultAssessment(sampleResult(criteria.checks), item.assessment) : undefined,
   };
 }
 
@@ -53,6 +57,6 @@ export function normalizeWorkspace(value: unknown): Workspace {
   if (!Array.isArray(input.folders) || !Array.isArray(input.exams)) throw new Error('Saved demo data is invalid. Export or clear this browser’s site storage to start again.');
   const folders = input.folders.map(record).filter(folder => text(folder.id) && text(folder.name)).map(folder => ({ id: text(folder.id), name: text(folder.name) }));
   const folderIds = new Set(folders.map(folder => folder.id));
-  const exams = input.exams.filter(item => typeof item === 'object' && item !== null).map(item => item as Exam).filter(exam => typeof exam.id === 'string' && folderIds.has(exam.folderId)).map(exam => ({ ...exam, criteria: normalizeCriteria(exam.criteria) }));
+  const exams = input.exams.filter(item => typeof item === 'object' && item !== null).map(item => item as Exam).filter(exam => typeof exam.id === 'string' && folderIds.has(exam.folderId)).map(exam => ({ ...exam, result: preserveResultAssessment(exam.result, record(exam.criteria).assessment), criteria: normalizeCriteria(exam.criteria) }));
   return { folders, exams };
 }

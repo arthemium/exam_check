@@ -2,7 +2,7 @@ export type Check = 'grammar' | 'spelling' | 'punctuation' | 'structure' | 'form
 export type ExamStatus = 'uploaded' | 'queued' | 'processing' | 'completed' | 'failed';
 export interface Criteria {
   checks: Check[];
-  assessment: 'general' | 'cae';
+  assessment: 'general' | 'b2_first_schools';
   customCriteria: string;
   minWords: string;
   maxWords: string;
@@ -24,6 +24,7 @@ export interface Issue {
 }
 export interface Assessment { criterion: string; feedback: string; score: number | null }
 export interface ExamResult {
+  assessment?: Criteria['assessment'] | 'cae';
   paragraphs: Paragraph[]; issues: Issue[]; needsTranscriptionReview?: boolean; warnings?: string[];
   task?: { text: string; source: Criteria['taskSource'] };
   wordCount?: number;

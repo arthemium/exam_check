@@ -71,7 +71,7 @@ func (checker *openAIChecker) loadCriteria(ctx context.Context, examID string, c
 	if err != nil {
 		return criteria, &CheckingError{"The saved checking criteria are invalid.", false}
 	}
-	if len(checks) == 0 && criteria.Assessment != "cae" && strings.TrimSpace(criteria.CustomCriteria) == "" && criteria.MinWords == nil && criteria.MaxWords == nil {
+	if len(checks) == 0 && criteria.Assessment != "b2_first_schools" && strings.TrimSpace(criteria.CustomCriteria) == "" && criteria.MinWords == nil && criteria.MaxWords == nil {
 		return criteria, &CheckingError{"Select at least one checking criterion.", false}
 	}
 	return criteria, nil
@@ -161,15 +161,14 @@ func (checker *openAIChecker) transcribeWithTask(ctx context.Context, examID str
 	return transcription{Paragraphs: source.Paragraphs, Model: prompt.Model}, task, nil
 }
 
-// The four subscales and 0–5 range follow the Cambridge C1 Advanced handbook.
-// https://www.cambridgeenglish.org/Images/167804-c1-advanced-handbook.pdf
-var caeCriteria = []string{"Content", "Communicative Achievement", "Organisation", "Language"}
+// The four subscales and 0–5 range follow the supplied B2 First for Schools rubric.
+var b2Criteria = []string{"Content", "Communicative Achievement", "Organisation", "Language"}
 
 func assessmentOutputSchema() map[string]any {
 	schema := analysisSchema()
 	properties := schema["properties"].(map[string]any)
 	properties["assessments"] = map[string]any{"type": "array", "maxItems": 4, "items": objectSchema(map[string]any{
-		"criterion": enumSchema(caeCriteria...), "feedback": map[string]any{"type": "string"},
+		"criterion": enumSchema(b2Criteria...), "feedback": map[string]any{"type": "string"},
 		"score": map[string]any{"type": []string{"integer", "null"}, "minimum": 0, "maximum": 5},
 	})}
 	properties["custom_assessments"] = map[string]any{"type": "array", "maxItems": 100, "items": objectSchema(map[string]any{
@@ -192,7 +191,7 @@ func customCriteriaLines(value string) []string {
 }
 
 func needsAssessment(criteria Criteria) bool {
-	return criteria.Assessment == "cae" || len(customCriteriaLines(criteria.CustomCriteria)) > 0 || len(criteria.Checks) > 0
+	return criteria.Assessment == "b2_first_schools" || len(customCriteriaLines(criteria.CustomCriteria)) > 0 || len(criteria.Checks) > 0
 }
 
 func (checker *openAIChecker) assessExam(ctx context.Context, criteria Criteria, task checkedTask, paragraphs []checkedParagraph) (assessmentAnalysis, error) {
@@ -203,12 +202,19 @@ func (checker *openAIChecker) assessExam(ctx context.Context, criteria Criteria,
 	if err != nil {
 		return assessmentAnalysis{}, err
 	}
+	if criteria.Assessment == "b2_first_schools" {
+		rubric, err := loadB2RubricPrompt(ctx, checker.store.DB)
+		if err != nil {
+			return assessmentAnalysis{}, err
+		}
+		saved.Templates["rubric.b2_first_schools"] = rubric
+	}
 	prompt, err := promptBuilder(saved.Templates).checking(criteria, task, paragraphs)
 	if err != nil {
 		return assessmentAnalysis{}, err
 	}
 	prompt.Model = saved.Model
-	if criteria.Assessment != "cae" && len(customCriteriaLines(criteria.CustomCriteria)) == 0 {
+	if criteria.Assessment != "b2_first_schools" && len(customCriteriaLines(criteria.CustomCriteria)) == 0 {
 		var feedback analysis
 		err := checker.requestAnalysis(ctx, prompt.modelPrompt, analysisSchema(), prompt.Content, &feedback)
 		return assessmentAnalysis{Findings: feedback.Findings, Assessments: []criterionAssessment{}, CustomAssessments: []customAssessment{}, Model: prompt.Model}, err
@@ -238,8 +244,8 @@ func (checker *openAIChecker) requestAnalysis(ctx context.Context, prompt modelP
 
 func validateAssessmentFeedback(feedback assessmentAnalysis, criteria Criteria) error {
 	expected := []string{}
-	if criteria.Assessment == "cae" {
-		expected = caeCriteria
+	if criteria.Assessment == "b2_first_schools" {
+		expected = b2Criteria
 	}
 	if len(feedback.Assessments) != len(expected) {
 		return invalidModelOutput()
@@ -316,6 +322,7 @@ func buildAssessmentResult(transcriptionModel string, paragraphs []checkedParagr
 		return nil, err
 	}
 	result.SchemaVersion, result.Task, result.Checks = 2, task, criteria.Checks
+	result.Assessment = criteria.Assessment
 	result.TranscriptionModel = transcriptionModel
 	result.WordCount = answerWordCount(paragraphs)
 	result.WordLimit = wordLimitResult(result.WordCount, criteria)
@@ -331,7 +338,7 @@ func buildAssessmentResult(transcriptionModel string, paragraphs []checkedParagr
 			result.Assessments[index].Score = nil
 		}
 	}
-	if len(checks) != len(criteria.Checks) || (criteria.Assessment == "cae" && task.Text == "") {
+	if len(checks) != len(criteria.Checks) || (criteria.Assessment == "b2_first_schools" && task.Text == "") {
 		result.ValidationWarnings = append(result.ValidationWarnings, "Task instructions are missing; task completion and task-dependent scores cannot be assessed.")
 	}
 	if result.NeedsTranscriptionReview {

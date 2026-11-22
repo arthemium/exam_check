@@ -12,7 +12,7 @@ import (
 
 type Store struct{ DB *sql.DB }
 
-const schemaVersion = 5
+const schemaVersion = 7
 
 func OpenStore(path, initialModel string) (*Store, error) {
 	absolute, err := filepath.Abs(path)
@@ -107,6 +107,16 @@ func (store *Store) initialize(initialModel string) error {
 	}
 	if currentVersion < 5 {
 		if err = migrateAssessmentSteps(tx); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 6 {
+		if err = migrateB2RubricAndCheckerEvidence(tx); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 7 {
+		if err = replaceC1WithB2(tx); err != nil {
 			return err
 		}
 	}

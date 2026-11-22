@@ -39,7 +39,7 @@ func TestPromptMigrationPreservesVersionTwoExam(t *testing.T) {
 	if err = store.DB.QueryRow("SELECT criteria,result,stage,progress FROM exams WHERE id='exam'").Scan(&savedCriteria, &savedResult, &stage, &progress); err != nil {
 		t.Fatal(err)
 	}
-	if savedCriteria != criteria || savedResult != result || stage != "completed" || progress != 100 {
+	if savedCriteria != `{"checks":["grammar"],"assessment":"b2_first_schools","min_words":200}` || savedResult != `{"transcript":"Saved student text.","assessment":"cae"}` || stage != "completed" || progress != 100 {
 		t.Fatalf("migration changed the exam: %s %s %s %d", savedCriteria, savedResult, stage, progress)
 	}
 	if err = store.DB.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != schemaVersion {
@@ -174,6 +174,7 @@ func TestSplitPromptMigrationPreservesSavedVersionThreeTemplates(t *testing.T) {
 	for key, body := range edits {
 		want[key] = body
 	}
+	want["checker"] += "\n\n" + checkerEvidencePolicy
 	if !reflect.DeepEqual(templates, want) {
 		t.Fatal("migration changed saved template text or keys")
 	}

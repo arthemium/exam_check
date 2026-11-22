@@ -24,9 +24,9 @@ function CriteriaOptions({ criteria, advanced, disabled, onChange }: { criteria:
   return <>
     <label className="field">Assessment criteria<select value={criteria.assessment} disabled={disabled} onChange={event => {
       const assessment = event.target.value as Criteria['assessment'];
-      onChange({ assessment, ...(assessment === 'cae' && !criteria.minWords && !criteria.maxWords ? { minWords: '220', maxWords: '260' } : {}) });
-    }}><option value="general">General writing</option><option value="cae" disabled={!advanced}>Cambridge C1 Advanced (CAE) Essay</option></select></label>
-    {criteria.assessment === 'cae' && <div className="rubric"><h3>CAE assessment criteria</h3><dl>
+      onChange({ assessment, ...(assessment === 'b2_first_schools' && !criteria.minWords && !criteria.maxWords ? { minWords: '140', maxWords: '190' } : {}) });
+    }}><option value="general">General writing</option><option value="b2_first_schools" disabled={!advanced}>Cambridge B2 First for Schools</option></select></label>
+    {criteria.assessment === 'b2_first_schools' && <div className="rubric"><h3>B2 assessment criteria</h3><dl>
       <dt>Content</dt><dd>Task completion, relevance, and how fully the reader is informed.</dd>
       <dt>Communicative Achievement</dt><dd>Format, register, style, and purpose.</dd>
       <dt>Organisation</dt><dd>Paragraphs, coherence, and linking ideas.</dd>
@@ -38,7 +38,7 @@ function CriteriaOptions({ criteria, advanced, disabled, onChange }: { criteria:
     <fieldset className="word-limits" disabled={disabled || !advanced}><legend>Word limit <span className="muted">Optional</span></legend><div className="identity-fields">
       <label className="field">Minimum words<input inputMode="numeric" maxLength={5} value={criteria.minWords} onChange={event => onChange({ minWords: event.target.value })} placeholder="No minimum" /></label>
       <label className="field">Maximum words<input inputMode="numeric" maxLength={5} value={criteria.maxWords} onChange={event => onChange({ maxWords: event.target.value })} placeholder="No maximum" /></label>
-    </div><p className="helper">Count the student's answer only. The CAE range is 220–260 words.</p></fieldset>
+    </div><p className="helper">Count the student's answer only. The B2 First for Schools range is 140–190 words.</p></fieldset>
   </>;
 }
 

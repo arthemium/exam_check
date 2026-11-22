@@ -35,8 +35,8 @@ func normalizeCriteria(criteria Criteria) (Criteria, error) {
 	if criteria.Assessment == "" {
 		criteria.Assessment = "general"
 	}
-	if criteria.Assessment != "general" && criteria.Assessment != "cae" {
-		return criteria, apiProblem{422, "Choose general or CAE assessment"}
+	if criteria.Assessment != "general" && criteria.Assessment != "b2_first_schools" {
+		return criteria, apiProblem{422, "Choose general or B2 First for Schools assessment"}
 	}
 	criteria.CustomCriteria = strings.TrimSpace(criteria.CustomCriteria)
 	criteria.TaskText = strings.TrimSpace(criteria.TaskText)

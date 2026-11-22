@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Capabilities, Check, Exam, Issue, Paragraph } from '../types';
 import { checkOptions, isChecking } from '../criteria';
 import { PhotoViewer } from './PhotoViewer';
+import { TranscriptHighlight } from './TranscriptHighlight';
 import { countWords, segmentParagraph, wordCountMessage } from './transcript';
 
 export interface ReviewScreenProps {
@@ -43,9 +44,7 @@ function TranscriptParagraph({ paragraph, issues, selectedId, onSelect }: { para
   return <p>{parts.map(part => {
     if (part.uncertain) return <span key={part.start} className="uncertainty" title="Uncertain handwriting — review against the photo">{part.text || '[unreadable]'}</span>;
     if (!part.issueIds.length) return <span key={part.start}>{part.text}</span>;
-    const issueId = part.issueIds.includes(selectedId) ? selectedId : part.issueIds[0];
-    const issue = issues.find(item => item.id === issueId)!;
-    return <button key={part.start} type="button" data-check={issue.category} className={`text-mark mark-${issue.category} ${part.issueIds.includes(selectedId) ? 'selected' : ''}`} aria-pressed={part.issueIds.includes(selectedId)} aria-label={`${categoryLabel(issue)} feedback for ${part.text}`} onClick={() => onSelect(issue.id)}>{part.text}</button>;
+    return <TranscriptHighlight key={part.start} text={part.text} issues={issues.filter(issue => part.issueIds.includes(issue.id))} selectedId={selectedId} onSelect={onSelect} />;
   })}</p>;
 }
 
@@ -56,7 +55,7 @@ function Transcript({ exam, issues, selectedId, onSelect, demo }: { exam: Exam; 
       {result.needsTranscriptionReview && <p className="notice">Some handwriting is uncertain. Compare the marked text with the photo.</p>}
       <div className="feedback-legend" aria-label="Feedback styles">{checkOptions.filter(option => issues.some(issue => issue.category === option.value && issue.scope === 'span')).map(option => <span key={option.value} className="legend-check" data-check={option.value}>{option.label}</span>)}<span>Uncertain handwriting: dotted underline</span></div>
       <article className="essay"><h3>{exam.title}</h3>{result.paragraphs.map(paragraph => <TranscriptParagraph key={paragraph.id} paragraph={paragraph} issues={issues} selectedId={selectedId} onSelect={onSelect} />)}</article>
-      <p className="helper panel-footer">Select a marked word to see its feedback.</p>
+      <p className="helper panel-footer">Hover over or select a marked word to see its suggestions.</p>
     </>}
   </section>;
 }
@@ -135,7 +134,7 @@ export function ReviewScreen({ exam, exams, capabilities, onOpen, onEdit, onBack
     <div className="review-layout">
     <div className="review-main">
       <Feedback exam={exam} category={category} selectedId={selectedId} onSelect={setSelectedId} onFilter={selectCategory} />
-      <Transcript exam={exam} issues={filteredIssues(exam, category)} selectedId={selectedId} onSelect={setSelectedId} demo={capabilities.demo} />
+      <Transcript key={`${exam.id}:${category}`} exam={exam} issues={filteredIssues(exam, category)} selectedId={selectedId} onSelect={setSelectedId} demo={capabilities.demo} />
     </div>
     <aside className="review-sidebar" aria-label="Original exam and task details">
     <PhotoViewer key={exam.id} photos={exam.photos} exam={exam} compact />

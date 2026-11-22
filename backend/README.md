@@ -23,6 +23,18 @@ Supply `OPENAI_API_KEY` before requesting checks. Model selection comes from SQL
 
 OpenAI prompts use two tables: `main_prompts(key, body, model)` holds `transcriber` and `checker`; `prompt_additions(key, body)` holds the 15 check, assessment, task, custom, and word-limit sections. Migration moves existing text unchanged and removes the old `prompt_templates` table. Defaults live in `internal/app/prompt_defaults.go` and are seeded once. Saved prompt and model edits survive restarts and are loaded together for each model request; missing or blank selected prompts/models fail explicitly. Task text, custom criteria, the unchanged transcript, and server-calculated word limits stay in separate JSON input. Changing Go defaults does not overwrite saved rows. Results record the OCR model in `transcription_model` and the assessment model in `model`; word-limit-only results use the OCR model for both because no assessment call is made.
 
+Granular C1 writing references live in `assessment_rubric_steps`, separately from prompts. Schema 5 seeds four ordered steps for `assessment='cae'`: `content`, `communicative_achievement`, `organisation`, and `language`. Each stores a short summary, guidance for all six score bands, and the official document URL, printed/PDF pages, SHA-256 and reference version. These are paraphrases reviewed against the [Cambridge handbook](https://www.cambridgeenglish.org/Images/167804-c1-advanced-handbook.pdf) on 2026-11-21, not the full official descriptors. The seed is in `internal/app/assessment_steps.sql`; migrations preserve saved edits and existing prompts/models. `ListAssessmentSteps` returns only ordered keys/titles; `LoadAssessmentStep` loads one criterion at a time. The checker still uses its current prompt flow; these lookups are ready for the later tool integration.
+
+For example, retrieve only the Organisation step:
+
+```sql
+SELECT step_order, title, summary, score_guidance, source_url, source_pages, reference_version
+FROM assessment_rubric_steps
+WHERE assessment = 'cae' AND step_key = 'organisation';
+```
+
+Application startup owns the schema version. The additive SQL seed can also provision the table for an older running app without changing `PRAGMA user_version`; upgrading the app then completes migration 5. Railway receives the migration when the updated code is deployed.
+
 The app and API share `PUBLIC_BASE_URL`; Docker publishes port `APP_PORT` (8000 by default) on the host loopback interface. `/health/live` checks the process and `/health/ready` checks database readiness. The root Dockerfile compiles the React frontend in API mode and includes it in the Go image. No separate frontend build is required for Docker. See the [frontend README](../frontend/README.md) for local development and currently supported controls. The React frontend connects to this API by default.
 
 The Go server preserves the application endpoints below; it does not expose the former FastAPI Swagger `/docs` page. Local Go commands read environment variables directly; Docker Compose loads the root `.env` file.

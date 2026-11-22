@@ -110,30 +110,30 @@ describe('ReviewScreen and transcript ranges', () => {
     const value = exam({ status: 'completed', result: { paragraphs: [{ id: 'p', pageNumber: 1, text: 'My sister practice daly.' }], issues: [issue, spelling, structure] } });
     render(<ReviewScreen exam={value} exams={[value]} capabilities={demo} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
     const feedback = screen.getByRole('region', { name: 'Review feedback' });
-    const transcript = screen.getByRole('region', { name: 'Exam transcription' });
+    const transcript = () => screen.getByRole('region', { name: 'Exam transcription' });
     const filters = screen.getByRole('group', { name: 'Filter feedback by check' });
 
     await user.click(within(filters).getByRole('button', { name: 'Spelling 1' }));
     expect(within(feedback).getByText(spelling.explanation)).toBeInTheDocument();
     expect(within(feedback).queryByText(issue.suggestion)).not.toBeInTheDocument();
-    expect(within(transcript).getByRole('button', { name: 'Spelling feedback for daly' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(transcript).queryByRole('button', { name: 'Grammar feedback for practice' })).not.toBeInTheDocument();
-    expect(transcript.querySelector('.essay p')).toHaveTextContent('My sister practice daly.');
+    expect(within(transcript()).getByRole('button', { name: 'Spelling feedback for daly' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(transcript()).queryByRole('button', { name: 'Grammar feedback for practice' })).not.toBeInTheDocument();
+    expect(transcript().querySelector('.essay p')).toHaveTextContent('My sister practice daly.');
 
     await user.click(within(filters).getByRole('button', { name: 'Grammar 1' }));
     expect(within(feedback).getByText(issue.explanation)).toBeInTheDocument();
-    expect(within(transcript).getByRole('button', { name: 'Grammar feedback for practice' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(transcript()).getByRole('button', { name: 'Grammar feedback for practice' })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(within(filters).getByRole('button', { name: 'Punctuation 0' }));
     expect(within(feedback).getByText('No punctuation findings')).toBeInTheDocument();
-    expect(within(transcript).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(transcript()).queryByRole('button')).not.toBeInTheDocument();
 
     await user.click(within(filters).getByRole('button', { name: 'Essay structure 1' }));
     expect(within(feedback).getByText(structure.explanation)).toBeInTheDocument();
-    expect(within(transcript).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(transcript()).queryByRole('button')).not.toBeInTheDocument();
 
     await user.click(within(filters).getByRole('button', { name: 'All feedback 3' }));
-    await user.click(within(transcript).getByRole('button', { name: 'Spelling feedback for daly' }));
+    await user.click(within(transcript()).getByRole('button', { name: 'Spelling feedback for daly' }));
     expect(within(feedback).getByRole('button', { name: 'Spelling daly daily' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(feedback).getByText(spelling.explanation)).toBeInTheDocument();
   });
@@ -201,7 +201,8 @@ describe('ReviewScreen and transcript ranges', () => {
     expect(transcript.querySelector('img')).toBeNull();
     expect(transcript.querySelector('.uncertainty')).toHaveTextContent('daily');
     await user.click(within(transcript).getByRole('button', { name: 'Grammar feedback for practice' }));
-    expect(screen.getByText('Use singular subject agreement.')).toBeInTheDocument();
+    expect(within(screen.getByRole('tooltip')).getByText('Use singular subject agreement.')).toBeInTheDocument();
+    expect(transcript.querySelector('.essay p')?.textContent).toBe(text);
     expect(countWords(value.result!.paragraphs)).toBe(7);
     expect(container.querySelector('.word-summary')).toHaveTextContent('7 words');
   });

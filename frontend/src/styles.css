@@ -89,7 +89,7 @@ small, .helper { font-size: .82rem; line-height: 1.6; color: var(--muted); }
 .file-symbol { font-size: 2.2rem; line-height: 1; width: 36px; text-align: center; }
 .page-note { margin-bottom: 16px; }
 .status { font-size: .875rem; font-weight: 600; white-space: nowrap; padding: 6px 10px; background: var(--soft); border-radius: 5px; }
-.status.checked { border: 1px solid var(--text); background: var(--surface); }
+.status.checked { color: light-dark(#376d4e, #9ec9a7); border: 1px solid currentColor; background: color-mix(in srgb, currentColor 10%, var(--surface)); }
 input[type='checkbox'] { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); margin: 3px 0; }
 .select-all { display: flex; align-items: center; gap: 9px; font-size: .82rem; }
 .selection-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; background: var(--soft); padding: 14px 22px; font-size: .875rem; border-bottom: 1px solid var(--line); }
@@ -195,6 +195,11 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .feedback-card strong { display: block; font-size: 1rem; margin-bottom: 0; }
 .feedback-detail { padding: 16px; border: 1px solid var(--check-color); border-top: 0; border-radius: 0 0 6px 6px; background: var(--check-tint); font-size: 1rem; }
 .feedback-detail p { margin-bottom: 0; }
+.suggestion-bubble { position: fixed; z-index: 20; visibility: hidden; width: min(340px, calc(100vw - 24px)); max-height: min(360px, calc(100dvh - 24px)); overflow: auto; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: 0 8px 28px #0003; font: .875rem/1.5 system-ui, sans-serif; overflow-wrap: anywhere; }
+.suggestion-bubble section + section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.suggestion-bubble .eyebrow { color: var(--check-color); margin-bottom: 8px; }
+.suggestion-bubble .issue-quote { white-space: pre-wrap; }
+.suggestion-bubble p:last-child { margin: 8px 0 0; }
 .assessment-feedback { padding: 22px; border-top: 1px solid var(--line); }
 .assessment-feedback dl { margin: 18px 0 0; }
 .assessment-feedback dl > div + div { margin-top: 20px; }

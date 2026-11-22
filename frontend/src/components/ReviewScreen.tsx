@@ -16,15 +16,24 @@ export interface ReviewScreenProps {
 
 const categoryLabel = (issue: Issue) => checkOptions.find(option => option.value === issue.category)?.label || issue.category;
 type CheckFilter = Check | 'all';
-type FeedbackTab = 'text' | 'essay';
+type FeedbackTab = 'text' | 'essay' | 'assessment';
 
 function tabIssues(exam: Exam, tab: FeedbackTab): Issue[] {
+  if (tab === 'assessment') return [];
   return (exam.result?.issues || []).filter(issue => (issue.scope === 'span') === (tab === 'text'));
 }
 
 function initialFeedbackTab(exam: Exam): FeedbackTab {
   const result = exam.result;
-  return !tabIssues(exam, 'text').length && (result?.issues.length || result?.assessments?.length || result?.customAssessments?.length || result?.warnings?.length) ? 'essay' : 'text';
+  if (tabIssues(exam, 'text').length) return 'text';
+  if (result?.issues.length || result?.customAssessments?.length || result?.warnings?.length) return 'essay';
+  return result?.assessments?.length ? 'assessment' : 'text';
+}
+
+function assessmentTitle(exam: Exam): string {
+  const assessment = exam.result?.assessment ?? exam.criteria.assessment;
+  if (assessment === 'cae') return 'Previous C1 assessment';
+  return assessment === 'general' && exam.result?.assessments?.length ? 'Writing assessment' : 'B2 assessment';
 }
 
 function filteredIssues(exam: Exam, category: CheckFilter, tab: FeedbackTab): Issue[] {
@@ -41,12 +50,13 @@ function CheckFilters({ exam, category, tab, onSelect }: { exam: Exam; category:
   </div>;
 }
 
-function FeedbackTabs({ id, tab, onSelect }: { id: string; tab: FeedbackTab; onSelect: (tab: FeedbackTab) => void }) {
-  const tabs = [{ key: 'text', label: 'Text corrections' }, { key: 'essay', label: 'Essay feedback' }] as const;
+function FeedbackTabs({ id, tab, assessmentLabel, onSelect }: { id: string; tab: FeedbackTab; assessmentLabel: string; onSelect: (tab: FeedbackTab) => void }) {
+  const tabs = [{ key: 'text', label: 'Text corrections' }, { key: 'essay', label: 'Essay feedback' }, { key: 'assessment', label: assessmentLabel }] as const;
   function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + direction + tabs.length) % tabs.length;
     onSelect(tabs[next].key);
     event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
   }
@@ -111,29 +121,39 @@ function Feedback({ exam, category, tab, selectedId, onSelect, onFilter, onTab, 
   const result = exam.result;
   const issues = filteredIssues(exam, category, tab);
   const label = checkOptions.find(option => option.value === category)?.label;
-  const hasAssessments = !!(result?.assessments?.length || result?.customAssessments?.length);
+  const hasEssayFeedback = !!(result?.customAssessments?.length || result?.warnings?.length);
   return <section className="panel feedback" aria-label="Review feedback"><div className="panel-header"><h2>Feedback</h2>{!!issues.length && <span className="tag">{issues.length} finding{issues.length === 1 ? '' : 's'}</span>}</div>
-    <FeedbackTabs id={tabsId} tab={tab} onSelect={onTab} />
+    <FeedbackTabs id={tabsId} tab={tab} assessmentLabel={assessmentTitle(exam)} onSelect={onTab} />
     <div id={`${tabsId}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${tab}`} tabIndex={0} className="feedback-content" ref={listRef}>
+    {tab === 'assessment' ? <AssessmentFeedback exam={exam} /> : <>
     <CheckFilters exam={exam} category={category} tab={tab} onSelect={onFilter} />
-    {result && <p className="helper feedback-status" role="status">{label ? `${label} feedback · ` : ''}{tab === 'text' ? 'Select a correction to highlight its wording in the exam.' : 'Structure, overall feedback and assessments. Linked paragraphs are highlighted in the exam.'}</p>}
-    {!result ? <div className="empty-state"><h3>{exam.status === 'failed' ? 'Try checking again' : 'Criteria saved'}</h3><p>Feedback will appear here after checking. No findings have been generated for this photo.</p></div> : !issues.length ? (tab === 'text' || !hasAssessments) && <div className="empty-state"><h3>{tab === 'text' ? 'No text corrections' : 'No essay findings'}</h3><p>The original wording is preserved in the transcription.</p></div> : <div className="feedback-list">{issues.map(issue => <div key={issue.id} data-check={issue.category}>
+    {result && <p className="helper feedback-status" role="status">{label ? `${label} feedback · ` : ''}{tab === 'text' ? 'Select a correction to highlight its wording in the exam.' : 'Structure, overall feedback and custom criteria. Linked paragraphs are highlighted in the exam.'}</p>}
+    {!result ? <div className="empty-state"><h3>{exam.status === 'failed' ? 'Try checking again' : 'Criteria saved'}</h3><p>Feedback will appear here after checking. No findings have been generated for this photo.</p></div> : !issues.length ? (tab === 'text' || !hasEssayFeedback) && <div className="empty-state"><h3>{tab === 'text' ? 'No text corrections' : 'No essay findings'}</h3><p>The original wording is preserved in the transcription.</p></div> : <div className="feedback-list">{issues.map(issue => <div key={issue.id} data-check={issue.category}>
       <button type="button" className={`feedback-card ${selectedId === issue.id ? 'selected' : ''}`} aria-pressed={selectedId === issue.id} onClick={() => onSelect(issue.id)}><span className="eyebrow">{categoryLabel(issue)}{issue.scope !== 'span' ? ' · Suggestion' : ''}</span>{issue.quote && <span className="issue-quote">{issue.quote}</span>}<strong>{issue.suggestion}</strong></button>
       {selectedId === issue.id && <div className="feedback-detail" aria-live="polite"><h3>{issue.scope === 'span' ? 'Why this change?' : 'A suggestion to consider'}</h3><p>{issue.explanation}</p><FeedbackLocation exam={exam} issue={issue} onLocate={onLocate} /></div>}
     </div>)}</div>}
-    {tab === 'essay' && <>{!!result?.warnings?.length && <div className="notice"><h3>Review notes</h3><ul>{result.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}<AssessmentFeedback exam={exam} /></>}
+    {tab === 'essay' && <>{!!result?.warnings?.length && <div className="notice"><h3>Review notes</h3><ul>{result.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></div>}<CustomAssessmentFeedback exam={exam} /></>}
+    </>}
     </div>
   </section>;
 }
 
 function AssessmentFeedback({ exam }: { exam: Exam }) {
   const result = exam.result;
-  const assessment = result?.assessment ?? exam.criteria.assessment;
-  const assessmentTitle = assessment === 'cae' ? 'Previous C1 assessment' : assessment === 'b2_first_schools' ? 'B2 assessment' : 'Writing assessment';
-  return <>
-    {!!result?.assessments?.length && <section className="assessment-feedback" aria-label={assessmentTitle}><h3>{assessmentTitle}</h3><p className="helper">Estimated bands for teacher review, not an official Cambridge score.</p><dl>{result.assessments.map(item => <div key={item.criterion}><dt>{item.criterion}<span className="tag">{item.score === null ? 'Not assessable' : `${item.score} / 5`}</span></dt><dd>{item.feedback}</dd></div>)}</dl></section>}
-    {!!result?.customAssessments?.length && <section className="assessment-feedback" aria-label="Custom criteria assessment"><h3>Custom criteria</h3><dl>{result.customAssessments.map((item, index) => <div key={index}><dt>{item.criterion}</dt><dd>{item.feedback}</dd></div>)}</dl></section>}
-  </>;
+  const title = assessmentTitle(exam);
+  if (!result?.assessments?.length) {
+    const pending = !result && exam.criteria.assessment === 'b2_first_schools';
+    const heading = exam.status === 'failed' ? 'Checking did not finish' : pending ? 'Assessment pending' : `No ${title}`;
+    const message = exam.status === 'failed' ? 'Check the exam again to generate its assessment.' : exam.criteria.assessment !== 'b2_first_schools' ? 'Choose Cambridge B2 First for Schools in task & criteria, then check the exam.' : result ? 'No assessment was returned for this exam.' : 'The assessment will appear here when checking finishes.';
+    return <div className="empty-state"><h3>{heading}</h3><p>{message}</p></div>;
+  }
+  return <section className="assessment-feedback" aria-label={title}><h3>{title}</h3><p className="helper">Estimated bands for teacher review, not an official Cambridge score.</p><dl>{result.assessments.map(item => <div key={item.criterion}><dt>{item.criterion}<span className="tag">{item.score === null ? 'Not assessable' : `${item.score} / 5`}</span></dt><dd>{item.feedback}</dd></div>)}</dl></section>;
+}
+
+function CustomAssessmentFeedback({ exam }: { exam: Exam }) {
+  const assessments = exam.result?.customAssessments;
+  if (!assessments?.length) return null;
+  return <section className="assessment-feedback" aria-label="Custom criteria assessment"><h3>Custom criteria</h3><dl>{assessments.map((item, index) => <div key={index}><dt>{item.criterion}</dt><dd>{item.feedback}</dd></div>)}</dl></section>;
 }
 
 function resultWordLimit(exam: Exam, count: number): string {

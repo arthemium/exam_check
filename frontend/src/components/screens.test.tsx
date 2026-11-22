@@ -119,7 +119,7 @@ describe('ReviewScreen and transcript ranges', () => {
     const user = userEvent.setup();
     const spelling: Issue = { id: 'spelling', category: 'spelling', scope: 'span', paragraphId: 'p', quote: 'daly', start: 19, end: 23, suggestion: 'daily', explanation: 'Correct the spelling of daily.' };
     const structure: Issue = { id: 'structure', category: 'structure', scope: 'paragraph', paragraphId: 'p', suggestion: 'Add a supporting example.', explanation: 'Support the main idea with a concrete example.' };
-    const value = exam({ status: 'completed', result: { paragraphs: [{ id: 'p', pageNumber: 1, text: 'My sister practice daly.' }], issues: [issue, spelling, structure] } });
+    const value = exam({ status: 'completed', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' }, result: { paragraphs: [{ id: 'p', pageNumber: 1, text: 'My sister practice daly.' }], issues: [issue, spelling, structure], assessments: [{ criterion: 'Language', score: 3, feedback: 'Meaning remains clear.' }] } });
     render(<ReviewScreen exam={value} exams={[value]} capabilities={demo} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
     const feedback = screen.getByRole('region', { name: 'Review feedback' });
     const transcript = () => screen.getByRole('region', { name: 'Exam transcription' });
@@ -147,6 +147,15 @@ describe('ReviewScreen and transcript ranges', () => {
     expect(within(feedback).getByText(structure.explanation)).toBeInTheDocument();
     expect(transcript().querySelector('.paragraph-focus p')?.textContent).toBe('My sister practice daly.');
 
+    await user.click(screen.getByRole('tab', { name: 'B2 assessment' }));
+    expect(screen.getByRole('tabpanel', { name: 'B2 assessment' })).toHaveTextContent('Meaning remains clear.');
+    expect(screen.queryByRole('group', { name: 'Filter feedback by check' })).not.toBeInTheDocument();
+    expect(within(feedback).queryByText(structure.suggestion)).not.toBeInTheDocument();
+    expect(within(feedback).queryByText(issue.suggestion)).not.toBeInTheDocument();
+    expect(transcript().querySelector('.paragraph-focus')).toBeNull();
+    expect(within(transcript()).queryByRole('button', { name: /feedback for/ })).not.toBeInTheDocument();
+    expect(transcript().querySelector('.essay p')?.textContent).toBe('My sister practice daly.');
+
     await user.click(screen.getByRole('tab', { name: /Text corrections/ }));
     expect(within(filters()).getByRole('button', { name: 'All feedback 2' })).toHaveAttribute('aria-pressed', 'true');
     expect(transcript().querySelector('.paragraph-focus')).toBeNull();
@@ -172,7 +181,7 @@ describe('ReviewScreen and transcript ranges', () => {
 
   it('navigates feedback tabs with the keyboard', async () => {
     const user = userEvent.setup();
-    const value = exam({ status: 'completed', result: { paragraphs: [{ id: 'p', pageNumber: 1, text: 'My sister practice daily.' }], issues: [issue] } });
+    const value = exam({ status: 'completed', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' }, result: { paragraphs: [{ id: 'p', pageNumber: 1, text: 'My sister practice daily.' }], issues: [issue] } });
     render(<ReviewScreen exam={value} exams={[value]} capabilities={demo} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
     await user.click(screen.getByRole('tab', { name: /Text corrections/ }));
     await user.keyboard('{ArrowRight}');
@@ -180,11 +189,24 @@ describe('ReviewScreen and transcript ranges', () => {
     expect(essayTab).toHaveFocus();
     expect(essayTab).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel', { name: /Essay feedback/ })).toBeInTheDocument();
-    await user.keyboard('{ArrowLeft}');
+    await user.keyboard('{ArrowRight}');
+    const assessmentTab = screen.getByRole('tab', { name: 'B2 assessment' });
+    expect(assessmentTab).toHaveFocus();
+    expect(assessmentTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: 'B2 assessment' })).toHaveTextContent('No B2 assessment');
+    await user.keyboard('{ArrowRight}');
     const textTab = screen.getByRole('tab', { name: /Text corrections/ });
     expect(textTab).toHaveFocus();
     expect(textTab).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tabpanel', { name: /Text corrections/ })).toHaveTextContent(issue.explanation);
+    await user.keyboard('{ArrowLeft}');
+    expect(assessmentTab).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(textTab).toHaveFocus();
+    await user.keyboard('{End}');
+    expect(assessmentTab).toHaveFocus();
+    expect(assessmentTab).toHaveAttribute('tabindex', '0');
+    expect(textTab).toHaveAttribute('tabindex', '-1');
   });
 
   it('opens newly completed essay feedback without resetting the chosen tab on later polling', async () => {
@@ -253,7 +275,7 @@ describe('ReviewScreen and transcript ranges', () => {
     expect(screen.queryByText('My sister practice')).not.toBeInTheDocument();
   });
 
-  it('shows extracted task instructions, word counts, and assessment-only results in essay feedback', async () => {
+  it('shows B2 scores in their own tab and keeps custom criteria and review notes in essay feedback', async () => {
     const user = userEvent.setup();
     const value = exam({ status: 'completed', source: 'upload', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' }, result: {
       paragraphs: [{ id: 'p', pageNumber: 1, text: 'Student text with [unreadable] words.' }], issues: [], needsTranscriptionReview: true,
@@ -261,23 +283,57 @@ describe('ReviewScreen and transcript ranges', () => {
       wordLimit: { minimum: 140, maximum: 190, status: 'below' },
       assessments: [{ criterion: 'Content', feedback: 'The unclear passage prevents a reliable band.', score: null }, { criterion: 'Organisation', feedback: 'Ideas follow a logical order.', score: 3 }],
       customAssessments: [{ criterion: 'Use examples', feedback: 'Add a concrete example to support the argument.' }],
+      warnings: ['Check the unclear passage against the photo.'],
     } });
     render(<ReviewScreen exam={value} exams={[value]} capabilities={{ ...api, advancedCriteria: true }} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
     expect(screen.getByRole('region', { name: 'Task instructions used' })).toHaveTextContent('Discuss the benefits of learning languages.');
     expect(screen.getByText('From task photo')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Word count' })).toHaveTextContent('5 words');
     expect(screen.getByText('Below the 140-word minimum')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Essay feedback/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('region', { name: 'Custom criteria assessment' })).toHaveTextContent('Add a concrete example');
+    expect(screen.getByText('Check the unclear passage against the photo.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'B2 assessment' }));
     const assessment = screen.getByRole('region', { name: 'B2 assessment' });
     expect(assessment).toHaveTextContent('not an official Cambridge score');
     expect(assessment).toHaveTextContent('Not assessable');
     expect(assessment).toHaveTextContent('3 / 5');
-    expect(screen.getByRole('region', { name: 'Custom criteria assessment' })).toHaveTextContent('Add a concrete example');
-    expect(screen.getByRole('tab', { name: /Essay feedback/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('region', { name: 'Custom criteria assessment' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Check the unclear passage against the photo.')).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: /Text corrections/ }));
     expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Custom criteria assessment' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: /Essay feedback/ }));
-    expect(screen.getByRole('region', { name: 'B2 assessment' })).toHaveTextContent('3 / 5');
+    expect(screen.getByRole('region', { name: 'Custom criteria assessment' })).toHaveTextContent('Add a concrete example');
+    expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
+  });
+
+  it('opens completed B2-only results without resetting the chosen tab on later polling', async () => {
+    const user = userEvent.setup();
+    const pending = exam({ status: 'processing', criteria: { ...defaultCriteria(), assessment: 'b2_first_schools' } });
+    const props = { exams: [pending], capabilities: api, onOpen: vi.fn(), onEdit: vi.fn(), onBack: vi.fn() };
+    const { rerender } = render(<ReviewScreen {...props} exam={pending} />);
+    await user.click(screen.getByRole('tab', { name: 'B2 assessment' }));
+    expect(screen.getByRole('tabpanel', { name: 'B2 assessment' })).toHaveTextContent('Assessment pending');
+    expect(screen.queryByRole('group', { name: 'Filter feedback by check' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Text corrections' }));
+
+    const completed = exam({ ...pending, status: 'completed', result: {
+      assessment: 'b2_first_schools', paragraphs: [{ id: 'p', pageNumber: 1, text: 'A clear response.' }], issues: [],
+      assessments: [{ criterion: 'Content', feedback: 'All relevant points are addressed.', score: 5 }],
+    } });
+    rerender(<ReviewScreen {...props} exam={completed} />);
+    expect(screen.getByRole('tab', { name: 'B2 assessment' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: 'B2 assessment' })).toHaveTextContent('All relevant points are addressed.');
+    expect(screen.getByRole('region', { name: 'B2 assessment' })).toHaveTextContent('5 / 5');
+    expect(screen.queryByText('No essay findings')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Text corrections' }));
+    rerender(<ReviewScreen {...props} exam={structuredClone(completed)} />);
+    expect(screen.getByRole('tab', { name: 'Text corrections' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
   });
 
   it('labels saved C1 scores as previous results instead of relabeling them B2', () => {
@@ -286,6 +342,7 @@ describe('ReviewScreen and transcript ranges', () => {
       assessments: [{ criterion: 'Language', feedback: 'Saved C1 evidence.', score: 3 }],
     } });
     render(<ReviewScreen exam={value} exams={[value]} capabilities={api} onOpen={vi.fn()} onEdit={vi.fn()} onBack={vi.fn()} />);
+    expect(screen.getByRole('tab', { name: 'Previous C1 assessment' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('region', { name: 'Previous C1 assessment' })).toHaveTextContent('3 / 5');
     expect(screen.queryByRole('region', { name: 'B2 assessment' })).not.toBeInTheDocument();
   });

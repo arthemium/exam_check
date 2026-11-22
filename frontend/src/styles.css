@@ -194,7 +194,7 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
 .check-filters .tag { font-size: .8rem; border-color: currentColor; }
 .feedback-status { padding: 0 20px; }
 .feedback-tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 16px; }
-.feedback-tabs [role='tab'] { flex: 1; padding: 14px 8px; background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; font: inherit; font-size: .875rem; }
+.feedback-tabs [role='tab'] { flex: 1; min-width: 0; overflow-wrap: anywhere; padding: 14px 6px; background: transparent; color: var(--muted); border: 0; border-bottom: 3px solid transparent; font: inherit; font-size: .875rem; }
 .feedback-tabs [aria-selected='true'] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
 .feedback-content { position: relative; max-height: calc(100dvh - 160px); overflow-y: auto; scrollbar-gutter: stable; }
 .feedback-list { display: grid; gap: 10px; padding: 16px; }
